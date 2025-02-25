@@ -171,7 +171,7 @@ controller:
   jenkinsUrlProtocol:
 
   # -- Set Jenkins URL if you are not using the ingress definitions provided by the chart
-  jenkinsUrl: "http://192.168.0.104:8080"
+  jenkinsUrl: "http://example.com:8080"
 
   # If you set this prefix and use ingress controller, then you might want to set the ingress path below
   # I.e., "/jenkins"
@@ -723,7 +723,7 @@ controller:
     # configures the hostname e.g. jenkins.example.com
     # -- Ingress hostname
     hostName:
-      192.168.0.104
+      example.com
     resourceRootUrl:
     # -- Ingress TLS configuration
     tls: []
@@ -755,7 +755,7 @@ controller:
     tls:
      - secretName: jenkins-tls
        hosts:
-         - 192.168.0.104
+         - example.com
 
   # If you're running on GKE and need to configure a backendconfig
   # to finish ingress setup, use the following values.
