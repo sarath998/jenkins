@@ -217,7 +217,7 @@ controller:
   # For minikube, set this to NodePort, elsewhere uses LoadBalancer
   # Use ClusterIP if your setup includes ingress controller
   # -- k8s service type
-  serviceType: LoadBalancer
+  serviceType: clusterIp
 
   # -- k8s service clusterIP. Only used if serviceType is ClusterIP
   clusterIp:
@@ -383,7 +383,7 @@ controller:
   - 0.0.0.0/0
 
   # -- Optionally assign a known public LB IP
-  loadBalancerIP: 192.168.0.104
+  loadBalancerIP: 
 
   # Optionally configure a JMX port. This requires additional javaOpts, for example,
   # javaOpts: >
@@ -688,7 +688,7 @@ controller:
 
   ingress:
     # -- Enables ingress
-    enabled: false
+    enabled: true
 
     # Override for the default paths that map requests to the backend
     # -- Override for the default Ingress paths
@@ -723,7 +723,7 @@ controller:
     # configures the hostname e.g. jenkins.example.com
     # -- Ingress hostname
     hostName:
-    # -- Hostname to serve assets from
+     -- 192.168.0.104
     resourceRootUrl:
     # -- Ingress TLS configuration
     tls: []
@@ -753,9 +753,9 @@ controller:
     # configures the hostname e.g., jenkins-external.example.com
     hostName:
     tls:
-    # - secretName: jenkins-external.example.com
-    #   hosts:
-    #     - jenkins-external.example.com
+     - secretName: jenkins-tls
+       hosts:
+         - 192.168.0.104
 
   # If you're running on GKE and need to configure a backendconfig
   # to finish ingress setup, use the following values.
