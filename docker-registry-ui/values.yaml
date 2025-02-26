@@ -4,7 +4,8 @@ global:
   # the prefix will be `<helm release name>`.
   name: null
   # The default array of objects containing image pull secret names that will be applied.
-  imagePullSecrets: []
+  imagePullSecrets:
+    - name: registry-regcred
   # The default image policy for images: `IfNotPresent`, `Always`, `Never`
   imagePullPolicy: IfNotPresent
 
@@ -13,7 +14,7 @@ ui:
   # Number of replicas for the Deployment.
   replicas: 1
   # Title of the registry
-  title: "Docker registry UI"
+  title: "Coherent Docker Registry"
   # UI behave as a proxy of the registry
   proxy: false
   # The URL of your docker registry, may be a service (when proxy is on) or an external URL.
@@ -127,17 +128,17 @@ ui:
     # Enable the ingress for the user interface.
     enabled: true
     # Fully qualified domain name of a network host.
-    host: registry.zenvo.ai
+    host: registry-ui.zenvo.ai
     # Path is matched against the path of an incoming request.
     path: /
     # Determines the interpretation of the Path matching, must be Prefix to serve assets.
     pathType: Prefix
     # The name of an IngressClass cluster resource.
-    ingressClassName: public
+    ingressClassName: nginx
     # TLS configuration
-    tls: 
-      - host:
-        - registry.zenvo.ai
+    tls:
+      - hosts:
+        -  registry-ui.zenvo.ai
         secretName: registry-tls
     # Annotations to apply to the user interface ingress.
     annotations: {}
@@ -149,7 +150,7 @@ ui:
 ## Registry Server
 registry:
   # Enable the registry server.
-  enabled: true
+  enabled: false
   # The name and tag of the docker registry server image
   image: registry:2.8.2
   # Override default image pull secrets
@@ -173,7 +174,7 @@ registry:
   additionalSpec: {}
   # Extra Environmental Variables for Registry
   extraEnv: []
-  
+
   auth:
     basic:
       # Enable basic auth for Registry.
