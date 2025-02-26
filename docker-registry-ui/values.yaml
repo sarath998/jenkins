@@ -18,7 +18,7 @@ ui:
   # UI behave as a proxy of the registry
   proxy: false
   # The URL of your docker registry, may be a service (when proxy is on) or an external URL.
-  dockerRegistryUrl: "registry-ui.zenvo.ai"
+  dockerRegistryUrl: "registry.zenvo.ai"
   # Override the pull URL
   pullUrl: null
   # Remove the menu that show the dialogs to add, remove and change the endpoint of your docker registry.
@@ -134,13 +134,12 @@ ui:
     # Determines the interpretation of the Path matching, must be Prefix to serve assets.
     pathType: Prefix
     # The name of an IngressClass cluster resource.
-    ingressClassName: public
+    ingressClassName: nginx
     # TLS configuration
     tls:
-    - hosts:
-      - registry-ui.zenvo.ai
-      - registry.zenvo.ai
-      secretName: registry-tls
+      - hosts:
+        -  registry-ui.zenvo.ai
+        secretName: registry-tls
     # Annotations to apply to the user interface ingress.
     annotations: 
       cert-manager.io/cluster-issuer: "lets-encrypt"
@@ -177,12 +176,7 @@ registry:
   # Optional YAML string that will be appended to the deployment spec.
   additionalSpec: {}
   # Extra Environmental Variables for Registry
-  env:
-    REGISTRY_STORAGE_DELETE_ENABLED: "true"
-    REGISTRY_URL: "http://registry-ui.zenvo.ai" # Ensure this matches your service
-    REGISTRY_NAME: "docker-registry"
-    REGISTRY_HTTP_SECRET: ""
-    REGISTRY_LOG_LEVEL: "info"
+  extraEnv: []
 
 
   auth:
