@@ -14,7 +14,7 @@ ui:
   # Number of replicas for the Deployment.
   replicas: 1
   # Title of the registry
-  title: "Coherent Docker Registry"
+  title: "Docker Registry"
   # UI behave as a proxy of the registry
   proxy: false
   # The URL of your docker registry, may be a service (when proxy is on) or an external URL.
@@ -150,11 +150,11 @@ ui:
 ## Registry Server
 registry:
   # Enable the registry server.
-  enabled: false
+  enabled: enable
   # The name and tag of the docker registry server image
   image: registry:2.8.2
   # Override default image pull secrets
-  imagePullSecrets: "-"
+  imagePullSecrets: "registry-regcred"
   # Override default pull policy
   imagePullPolicy: "-"
   # Configuration for the data directory.  When null it will create an emptyDir.
