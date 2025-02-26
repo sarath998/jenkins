@@ -17,7 +17,7 @@ ui:
   # UI behave as a proxy of the registry
   proxy: false
   # The URL of your docker registry, may be a service (when proxy is on) or an external URL.
-  dockerRegistryUrl: null
+  dockerRegistryUrl: "registry.zenvo.ai"
   # Override the pull URL
   pullUrl: null
   # Remove the menu that show the dialogs to add, remove and change the endpoint of your docker registry.
@@ -125,9 +125,9 @@ ui:
 
   ingress:
     # Enable the ingress for the user interface.
-    enabled: false
+    enabled: true
     # Fully qualified domain name of a network host.
-    host: null
+    host: registry-ui.zenvo.ai
     # Path is matched against the path of an incoming request.
     path: /
     # Determines the interpretation of the Path matching, must be Prefix to serve assets.
@@ -135,7 +135,10 @@ ui:
     # The name of an IngressClass cluster resource.
     ingressClassName: nginx
     # TLS configuration
-    tls: []
+    tls: 
+      - hosts:
+        -  registry-ui.zenvo.ai
+        secretName: registry-tls
     # Annotations to apply to the user interface ingress.
     annotations: {}
     # If you want a custom path, you can try this example:
