@@ -176,7 +176,13 @@ registry:
   # Optional YAML string that will be appended to the deployment spec.
   additionalSpec: {}
   # Extra Environmental Variables for Registry
-  extraEnv: []
+  env:
+    REGISTRY_STORAGE_DELETE_ENABLED: "true"
+    REGISTRY_URL: "http://registry-ui.zenvo.ai" # Ensure this matches your service
+    REGISTRY_NAME: "docker-registry"
+    REGISTRY_HTTP_SECRET: ""
+    REGISTRY_LOG_LEVEL: "info"
+
 
   auth:
     basic:
