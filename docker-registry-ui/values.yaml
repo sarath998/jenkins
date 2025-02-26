@@ -137,9 +137,10 @@ ui:
     ingressClassName: public
     # TLS configuration
     tls:
-      - hosts:
-        -  registry-ui.zenvo.ai
-        secretName: registry-regcred
+    - hosts:
+      - registry-ui.zenvo.ai
+      - registry.zenvo.ai
+      secretName: registry-tls
     # Annotations to apply to the user interface ingress.
     annotations: 
       cert-manager.io/cluster-issuer: "lets-encrypt"
