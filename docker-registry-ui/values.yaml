@@ -135,7 +135,10 @@ ui:
     # The name of an IngressClass cluster resource.
     ingressClassName: public
     # TLS configuration
-    tls: {}
+    tls: 
+      - host:
+        - registry-ui.zenvo.ai
+        secretName: registry-secret
     # Annotations to apply to the user interface ingress.
     annotations: {}
     # If you want a custom path, you can try this example:
@@ -169,7 +172,20 @@ registry:
   # Optional YAML string that will be appended to the deployment spec.
   additionalSpec: {}
   # Extra Environmental Variables for Registry
-  extraEnv: []
+  Env: 
+    REGISTRY_URL: "https://registry.zenvo.ai"
+    REGISTRY_AUTH: "basic"
+    REGISTRY_SECRET: "/etc/secret/auth"
+
+  extraVolumeMounts:
+    - name: registry-secret
+      mountPath: "/etc/secret"
+      readOnly: true
+
+  extraVolumes:
+    - name: registry-secret
+      secret:
+        secretName: registry-secret    
 
   auth:
     basic:
