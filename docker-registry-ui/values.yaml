@@ -154,7 +154,8 @@ registry:
   # The name and tag of the docker registry server image
   image: registry:2.8.2
   # Override default image pull secrets
-  imagePullSecrets: "registry-regcred"
+  imagePullSecrets: 
+     - name: registry-regcred
   # Override default pull policy
   imagePullPolicy: "-"
   # Configuration for the data directory.  When null it will create an emptyDir.
