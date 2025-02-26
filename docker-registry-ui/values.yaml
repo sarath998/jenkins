@@ -18,7 +18,7 @@ ui:
   # UI behave as a proxy of the registry
   proxy: false
   # The URL of your docker registry, may be a service (when proxy is on) or an external URL.
-  dockerRegistryUrl: "registry.zenvo.ai"
+  dockerRegistryUrl: "registry-ui.zenvo.ai"
   # Override the pull URL
   pullUrl: null
   # Remove the menu that show the dialogs to add, remove and change the endpoint of your docker registry.
@@ -66,7 +66,7 @@ ui:
 
   # Select the default theme to apply, values can be `auto`, `dark` and `light`
   defaultTheme: "auto"
-  
+
   theme:
     # Custom background color for the UI
     background: ""
@@ -134,14 +134,17 @@ ui:
     # Determines the interpretation of the Path matching, must be Prefix to serve assets.
     pathType: Prefix
     # The name of an IngressClass cluster resource.
-    ingressClassName: nginx
+    ingressClassName: public
     # TLS configuration
     tls:
       - hosts:
         -  registry-ui.zenvo.ai
-        secretName: registry-tls
+        secretName: registry-regcred
     # Annotations to apply to the user interface ingress.
-    annotations: {}
+    annotations: 
+      cert-manager.io/cluster-issuer: "lets-encrypt"
+      nginx.ingress.kubernetes.io/ssl-redirect: "true"
+      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
     # If you want a custom path, you can try this example:
     # path: /ui(/|$)(.*)
     # annotations:
@@ -154,8 +157,7 @@ registry:
   # The name and tag of the docker registry server image
   image: registry:2.8.2
   # Override default image pull secrets
-  imagePullSecrets: 
-     - name: registry-regcred
+  imagePullSecrets: "-" 
   # Override default pull policy
   imagePullPolicy: "-"
   # Configuration for the data directory.  When null it will create an emptyDir.

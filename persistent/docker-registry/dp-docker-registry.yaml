@@ -90,7 +90,7 @@ spec:
   tls:
   - hosts:
     - registry.zenvo.ai
-    secretName: registry-tls
+    secretName: registry-regcred
   rules:
   - host: registry.zenvo.ai
     http:
@@ -101,4 +101,4 @@ spec:
           service:
             name: docker-registry
             port:
-              number: 5000   
+              number: 5000
