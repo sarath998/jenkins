@@ -1,711 +1,648 @@
-# Jenkins
+<!--- app-name: Jenkins -->
 
-[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/jenkins)](https://artifacthub.io/packages/helm/jenkinsci/jenkins)
-[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
-[![Releases downloads](https://img.shields.io/github/downloads/jenkinsci/helm-charts/total.svg)](https://github.com/jenkinsci/helm-charts/releases)
-[![Join the chat at https://app.gitter.im/#/room/#jenkins-ci:matrix.org](https://badges.gitter.im/badge.svg)](https://app.gitter.im/#/room/#jenkins-ci:matrix.org)
+# Bitnami package for Jenkins
 
-[Jenkins](https://www.jenkins.io/) is the leading open source automation server, Jenkins provides over 2000 plugins to support building, deploying and automating any project.
+Jenkins is an open source Continuous Integration and Continuous Delivery (CI/CD) server designed to automate the building, testing, and deploying of any software project.
 
-This chart installs a Jenkins server which spawns agents on [Kubernetes](http://kubernetes.io) utilizing the [Jenkins Kubernetes plugin](https://plugins.jenkins.io/kubernetes/).
+[Overview of Jenkins](http://jenkins-ci.org/)
 
-Inspired by the awesome work of [Carlos Sanchez](https://github.com/carlossg).
+Trademarks: This software listing is packaged by Bitnami. The respective trademarks mentioned in the offering are owned by the respective companies, and use of them does not imply any affiliation or endorsement.
 
-## Get Repository Info
+## TL;DR
 
 ```console
-helm repo add jenkins https://charts.jenkins.io
-helm repo update
+helm install my-release oci://registry-1.docker.io/bitnamicharts/jenkins
 ```
 
-_See [`helm repo`](https://helm.sh/docs/helm/helm_repo/) for command documentation._
+Looking to use Jenkins in production? Try [VMware Tanzu Application Catalog](https://bitnami.com/enterprise), the commercial edition of the Bitnami catalog.
 
-## Install Chart
+## Introduction
+
+This chart bootstraps a [Jenkins](https://github.com/bitnami/containers/tree/main/bitnami/jenkins) deployment on a [Kubernetes](https://kubernetes.io) cluster using the [Helm](https://helm.sh) package manager.
+
+Bitnami charts can be used with [Kubeapps](https://kubeapps.dev/) for deployment and management of Helm Charts in clusters.
+
+## Prerequisites
+
+- Kubernetes 1.23+
+- Helm 3.8.0+
+- PV provisioner support in the underlying infrastructure
+- ReadWriteMany volumes for deployment scaling
+
+## Installing the Chart
+
+To install the chart with the release name `my-release`:
 
 ```console
-helm install [RELEASE_NAME] jenkins/jenkins [flags]
+helm install my-release oci://REGISTRY_NAME/REPOSITORY_NAME/jenkins
 ```
 
-Since version `5.6.0` the chart is available as an OCI image and can be installed using:
+> Note: You need to substitute the placeholders `REGISTRY_NAME` and `REPOSITORY_NAME` with a reference to your Helm chart registry and repository. For example, in the case of Bitnami, you need to use `REGISTRY_NAME=registry-1.docker.io` and `REPOSITORY_NAME=bitnamicharts`.
+
+These commands deploy Jenkins on the Kubernetes cluster in the default configuration. The [Parameters](#parameters) section lists the parameters that can be configured during installation.
+
+> **Tip**: List all releases using `helm list`
+
+## Configuration and installation details
+
+### Resource requests and limits
+
+Bitnami charts allow setting resource requests and limits for all containers inside the chart deployment. These are inside the `resources` value (check parameter table). Setting requests is essential for production workloads and these should be adapted to your specific use case.
+
+To make this process easier, the chart contains the `resourcesPreset` values, which automatically sets the `resources` section according to different presets. Check these presets in [the bitnami/common chart](https://github.com/bitnami/charts/blob/main/bitnami/common/templates/_resources.tpl#L15). However, in production workloads using `resourcesPreset` is discouraged as it may not fully adapt to your specific needs. Find more information on container resource management in the [official Kubernetes documentation](https://kubernetes.io/docs/concepts/configuration/manage-resources-containers/).
+
+### [Rolling vs Immutable tags](https://techdocs.broadcom.com/us/en/vmware-tanzu/application-catalog/tanzu-application-catalog/services/tac-doc/apps-tutorials-understand-rolling-tags-containers-index.html)
+
+It is strongly recommended to use immutable tags in a production environment. This ensures your deployment does not change automatically if the same tag is updated with a different image.
+
+Bitnami will release a new chart updating its containers if a new version of the main container, significant changes, or critical vulnerabilities exist.
+
+### Update credentials
+
+Bitnami charts configure credentials at first boot. Any further change in the secrets or credentials require manual intervention. Follow these instructions:
+
+- Update the user password following [the upstream documentation](https://www.jenkins.io/doc/book/system-administration/admin-password-reset-instructions/)
+- Update the password secret with the new values (replace the SECRET_NAME and PASSWORD placeholders)
+
+```shell
+kubectl create secret generic SECRET_NAME --from-literal=jenkins-password=PASSWORD --dry-run -o yaml | kubectl apply -f -
+```
+
+### Configure Ingress
+
+This chart provides support for Ingress resources. If you have an ingress controller installed on your cluster, such as [nginx-ingress-controller](https://github.com/bitnami/charts/tree/main/bitnami/nginx-ingress-controller) or [contour](https://github.com/bitnami/charts/tree/main/bitnami/contour) you can utilize the ingress controller to serve your application.To enable Ingress integration, set `ingress.enabled` to `true`.
+
+The most common scenario is to have one host name mapped to the deployment. In this case, the `ingress.hostname` property can be used to set the host name. The `ingress.tls` parameter can be used to add the TLS configuration for this host.
+
+However, it is also possible to have more than one host. To facilitate this, the `ingress.extraHosts` parameter (if available) can be set with the host names specified as an array. The `ingress.extraTLS` parameter (if available) can also be used to add the TLS configuration for extra hosts.
+
+> NOTE: For each host specified in the `ingress.extraHosts` parameter, it is necessary to set a name, path, and any annotations that the Ingress controller should know about. Not all annotations are supported by all Ingress controllers, but [this annotation reference document](https://github.com/kubernetes/ingress-nginx/blob/master/docs/user-guide/nginx-configuration/annotations.md) lists the annotations supported by many popular Ingress controllers.
+
+Adding the TLS parameter (where available) will cause the chart to generate HTTPS URLs, and the  application will be available on port 443. The actual TLS secrets do not have to be generated by this chart. However, if TLS is enabled, the Ingress record will not work until the TLS secret exists.
+
+[Learn more about Ingress controllers](https://kubernetes.io/docs/concepts/services-networking/ingress-controllers/).
+
+### Configure TLS Secrets for use with Ingress
+
+This chart facilitates the creation of TLS secrets for use with the Ingress controller (although this is not mandatory). There are several common use cases:
+
+- Generate certificate secrets based on chart parameters.
+- Enable externally generated certificates.
+- Manage application certificates via an external service (like [cert-manager](https://github.com/jetstack/cert-manager/)).
+- Create self-signed certificates within the chart (if supported).
+
+In the first two cases, a certificate and a key are needed. Files are expected in `.pem` format.
+
+Here is an example of a certificate file:
+
+> NOTE: There may be more than one certificate if there is a certificate chain.
+
+```text
+-----BEGIN CERTIFICATE-----
+MIID6TCCAtGgAwIBAgIJAIaCwivkeB5EMA0GCSqGSIb3DQEBCwUAMFYxCzAJBgNV
+...
+jScrvkiBO65F46KioCL9h5tDvomdU1aqpI/CBzhvZn1c0ZTf87tGQR8NK7v7
+-----END CERTIFICATE-----
+```
+
+Here is an example of a certificate key:
+
+```text
+-----BEGIN RSA PRIVATE KEY-----
+MIIEogIBAAKCAQEAvLYcyu8f3skuRyUgeeNpeDvYBCDcgq+LsWap6zbX5f8oLqp4
+...
+wrj2wDbCDCFmfqnSJ+dKI3vFLlEz44sAV8jX/kd4Y6ZTQhlLbYc=
+-----END RSA PRIVATE KEY-----
+```
+
+- If using Helm to manage the certificates based on the parameters, copy these values into the `certificate` and `key` values for a given `*.ingress.secrets` entry.
+- If managing TLS secrets separately, it is necessary to create a TLS secret with name `INGRESS_HOSTNAME-tls` (where INGRESS_HOSTNAME is a placeholder to be replaced with the hostname you set using the `*.ingress.hostname` parameter).
+- If your cluster has a [cert-manager](https://github.com/jetstack/cert-manager) add-on to automate the management and issuance of TLS certificates, add to `*.ingress.annotations` the [corresponding ones](https://cert-manager.io/docs/usage/ingress/#supported-annotations) for cert-manager.
+- If using self-signed certificates created by Helm, set both `*.ingress.tls` and `*.ingress.selfSigned` to `true`.
+
+### Configure extra environment variables
+
+To add extra environment variables (useful for advanced operations like custom init scripts), use the `extraEnvVars` property.
+
+```yaml
+extraEnvVars:
+  - name: LOG_LEVEL
+    value: DEBUG
+```
+
+Alternatively, use a ConfigMap or a Secret with the environment variables. To do so, use the `extraEnvVarsCM` or the `extraEnvVarsSecret` values.
+
+### Configure Sidecars and Init Containers
+
+If additional containers are needed in the same pod as Jenkins (such as additional metrics or logging exporters), they can be defined using the `sidecars` parameter.
+
+```yaml
+sidecars:
+- name: your-image-name
+  image: your-image
+  imagePullPolicy: Always
+  ports:
+  - name: portname
+    containerPort: 1234
+```
+
+If these sidecars export extra ports, extra port definitions can be added using the `service.extraPorts` parameter (where available), as shown in the example below:
+
+```yaml
+service:
+  extraPorts:
+  - name: extraPort
+    port: 11311
+    targetPort: 11311
+```
+
+> NOTE: This Helm chart already includes sidecar containers for the Prometheus exporters (where applicable). These can be activated by adding the `--enable-metrics=true` parameter at deployment time. The `sidecars` parameter should therefore only be used for any extra sidecar containers.
+
+If additional init containers are needed in the same pod, they can be defined using the `initContainers` parameter. Here is an example:
+
+```yaml
+initContainers:
+  - name: your-image-name
+    image: your-image
+    imagePullPolicy: Always
+    ports:
+      - name: portname
+        containerPort: 1234
+```
+
+Learn more about [sidecar containers](https://kubernetes.io/docs/concepts/workloads/pods/) and [init containers](https://kubernetes.io/docs/concepts/workloads/pods/init-containers/).
+
+### Deploy extra resources
+
+There are cases where you may want to deploy extra objects, such a ConfigMap containing your app's configuration or some extra deployment with a micro service used by your app. For covering this case, the chart allows adding the full specification of other objects using the `extraDeploy` parameter.
+
+### Set Pod affinity
+
+This chart allows you to set custom Pod affinity using the `XXX.affinity` parameter(s). Find more information about Pod affinity in the [Kubernetes documentation](https://kubernetes.io/docs/concepts/configuration/assign-pod-node/#affinity-and-anti-affinity).
+
+As an alternative, you can use the preset configurations for pod affinity, pod anti-affinity, and node affinity available at the [bitnami/common](https://github.com/bitnami/charts/tree/main/bitnami/common#affinities) chart. To do so, set the `XXX.podAffinityPreset`, `XXX.podAntiAffinityPreset`, or `XXX.nodeAffinityPreset` parameters.
+
+### Backup and restore
+
+To back up and restore Helm chart deployments on Kubernetes, you need to back up the persistent volumes from the source deployment and attach them to a new deployment using [Velero](https://velero.io/), a Kubernetes backup/restore tool. Find the instructions for using Velero in [this guide](https://techdocs.broadcom.com/us/en/vmware-tanzu/application-catalog/tanzu-application-catalog/services/tac-doc/apps-tutorials-backup-restore-deployments-velero-index.html).
+
+## Persistence
+
+The [Bitnami Jenkins](https://github.com/bitnami/containers/tree/main/bitnami/jenkins) image stores the Jenkins data and configurations at the `/bitnami/jenkins` path of the container. Persistent Volume Claims (PVCs) are used to keep the data across deployments.
+
+If you encounter errors when working with persistent volumes, refer to our [troubleshooting guide for persistent volumes](https://docs.bitnami.com/kubernetes/faq/troubleshooting/troubleshooting-persistence-volumes/).
+s
+
+## Parameters
+
+### Global parameters
+
+| Name                                                  | Description                                                                                                                                                                                                                                                                                                                                                         | Value   |
+| ----------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| `global.imageRegistry`                                | Global Docker image registry                                                                                                                                                                                                                                                                                                                                        | `""`    |
+| `global.imagePullSecrets`                             | Global Docker registry secret names as an array                                                                                                                                                                                                                                                                                                                     | `[]`    |
+| `global.defaultStorageClass`                          | Global default StorageClass for Persistent Volume(s)                                                                                                                                                                                                                                                                                                                | `""`    |
+| `global.storageClass`                                 | DEPRECATED: use global.defaultStorageClass instead                                                                                                                                                                                                                                                                                                                  | `""`    |
+| `global.security.allowInsecureImages`                 | Allows skipping image verification                                                                                                                                                                                                                                                                                                                                  | `false` |
+| `global.compatibility.openshift.adaptSecurityContext` | Adapt the securityContext sections of the deployment to make them compatible with Openshift restricted-v2 SCC: remove runAsUser, runAsGroup and fsGroup and let the platform use their allowed default IDs. Possible values: auto (apply if the detected running cluster is Openshift), force (perform the adaptation always), disabled (do not perform adaptation) | `auto`  |
+
+### Common parameters
+
+| Name                     | Description                                                                             | Value           |
+| ------------------------ | --------------------------------------------------------------------------------------- | --------------- |
+| `kubeVersion`            | Override Kubernetes version                                                             | `""`            |
+| `nameOverride`           | String to partially override common.names.fullname                                      | `""`            |
+| `fullnameOverride`       | String to fully override common.names.fullname                                          | `""`            |
+| `replicaCount`           | Number of container replicas                                                            | `1`             |
+| `commonLabels`           | Labels to add to all deployed objects                                                   | `{}`            |
+| `commonAnnotations`      | Annotations to add to all deployed objects                                              | `{}`            |
+| `clusterDomain`          | Kubernetes cluster domain name                                                          | `cluster.local` |
+| `extraDeploy`            | Array of extra objects to deploy with the release                                       | `[]`            |
+| `diagnosticMode.enabled` | Enable diagnostic mode (all probes will be disabled and the command will be overridden) | `false`         |
+| `diagnosticMode.command` | Command to override all containers in the deployment                                    | `["sleep"]`     |
+| `diagnosticMode.args`    | Args to override all containers in the deployment                                       | `["infinity"]`  |
+
+### Jenkins Image parameters
+
+| Name                | Description                                                                                             | Value                     |
+| ------------------- | ------------------------------------------------------------------------------------------------------- | ------------------------- |
+| `image.registry`    | Jenkins image registry                                                                                  | `REGISTRY_NAME`           |
+| `image.repository`  | Jenkins image repository                                                                                | `REPOSITORY_NAME/jenkins` |
+| `image.digest`      | Jenkins image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag | `""`                      |
+| `image.pullPolicy`  | Jenkins image pull policy                                                                               | `IfNotPresent`            |
+| `image.pullSecrets` | Jenkins image pull secrets                                                                              | `[]`                      |
+| `image.debug`       | Enable image debug mode                                                                                 | `false`                   |
+
+### Jenkins Configuration parameters
+
+| Name                     | Description                                                                                                                                         | Value                   |
+| ------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------- |
+| `jenkinsUser`            | Jenkins username                                                                                                                                    | `user`                  |
+| `jenkinsPassword`        | Jenkins user password                                                                                                                               | `""`                    |
+| `jenkinsHost`            | Jenkins host to create application URLs                                                                                                             | `""`                    |
+| `jenkinsHome`            | Jenkins home directory                                                                                                                              | `/bitnami/jenkins/home` |
+| `javaOpts`               | Custom JVM parameters                                                                                                                               | `[]`                    |
+| `disableInitialization`  | Skip performing the initial bootstrapping for Jenkins                                                                                               | `no`                    |
+| `command`                | Override default container command (useful when using custom images)                                                                                | `[]`                    |
+| `args`                   | Override default container args (useful when using custom images)                                                                                   | `[]`                    |
+| `extraEnvVars`           | Array with extra environment variables to add to the Jenkins container                                                                              | `[]`                    |
+| `extraEnvVarsCM`         | Name of existing ConfigMap containing extra env vars                                                                                                | `""`                    |
+| `extraEnvVarsSecret`     | Name of existing Secret containing extra env vars                                                                                                   | `""`                    |
+| `plugins`                | List of plugins to be installed during Jenkins first boot.                                                                                          | `[]`                    |
+| `extraPlugins`           | List of plugins to install in addition to those listed in `plugins`                                                                                 | `[]`                    |
+| `latestPlugins`          | Set to true to download the latest version of all dependencies, even if the version(s) of the requested plugin(s) are not the latest.               | `true`                  |
+| `latestSpecifiedPlugins` | Set to true download the latest dependencies of any plugin that is requested to have the latest version.                                            | `false`                 |
+| `skipImagePlugins`       | Set this value to true to skip installing plugins stored under /opt/bitnami/jenkins/plugins                                                         | `false`                 |
+| `overridePlugins`        | Setting this value to true will remove all plugins from the jenkinsHome directory and install new plugins from scratch.                             | `false`                 |
+| `overridePaths`          | Comma-separated list of relative paths to be removed from Jenkins home volume and/or mounted if present in the mounted content dir                  | `""`                    |
+| `initScripts`            | Dictionary of scripts to be mounted at `/docker-entrypoint-initdb.d`. Evaluated as a template. Allows .sh and .groovy formats.                      | `{}`                    |
+| `initScriptsCM`          | ConfigMap containing the `/docker-entrypoint-initdb.d` scripts. Evaluated as a template.                                                            | `""`                    |
+| `initScriptsSecret`      | Secret containing `/docker-entrypoint-initdb.d` scripts to be executed at initialization time that contain sensitive data. Evaluated as a template. | `""`                    |
+| `initHookScripts`        | Dictionary of scripts to be mounted at `$JENKINS_HOME/init.groovy.d`. Evaluated as a template. Allows .sh and .groovy formats.                      | `{}`                    |
+| `initHookScriptsCM`      | ConfigMap containing the `$JENKINS_HOME/init.groovy.d` scripts. Evaluated as a template.                                                            | `""`                    |
+| `initHookScriptsSecret`  | Secret containing `$JENKINS_HOME/init.groovy.d` scripts to be executed at initialization time that contain sensitive data. Evaluated as a template. | `""`                    |
+
+### Jenkins TLS configuration
+
+| Name                  | Description                                                                                                                                                                                                               | Value   |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------- |
+| `tls.autoGenerated`   | Create self-signed TLS certificates. Currently only supports PEM certificates.                                                                                                                                            | `false` |
+| `tls.usePemCerts`     | Use this variable if your secrets contain PEM certificates instead of PKCS12                                                                                                                                              | `false` |
+| `tls.existingSecret`  | Name of the existing secret containing the 'jenkins.jks' keystore, if usePemCerts is enabled, use keys 'tls.crt' and 'tls.key'.                                                                                           | `""`    |
+| `tls.password`        | Password to access the JKS keystore when it is password-protected.                                                                                                                                                        | `""`    |
+| `tls.passwordsSecret` | Name of the existing secret containing the JKS keystore password.                                                                                                                                                         | `""`    |
+| `tls.resourcesPreset` | Set container resources according to one common preset (allowed values: none, nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored if tls.resources is set (tls.resources is recommended for production). | `nano`  |
+| `tls.resources`       | Set container requests and limits for different resources like CPU or memory (essential for production workloads)                                                                                                         | `{}`    |
+
+### Jenkins Configuration as Code plugin settings (EXPERIMENTAL)
+
+| Name                                                                        | Description                                                                                                                                                                                                                                                | Value                           |
+| --------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------- |
+| `configAsCode.enabled`                                                      | Enable configuration as code.                                                                                                                                                                                                                              | `false`                         |
+| `configAsCode.extraConfigFiles`                                             | List of additional configuration-as-code files to be mounted                                                                                                                                                                                               | `{}`                            |
+| `configAsCode.securityRealm`                                                | Content of the 'securityRealm' block                                                                                                                                                                                                                       | `{}`                            |
+| `configAsCode.authorizationStrategy`                                        | Content of the 'authorizationStrategy' block                                                                                                                                                                                                               | `{}`                            |
+| `configAsCode.security`                                                     | Content of the 'security' block                                                                                                                                                                                                                            | `{}`                            |
+| `configAsCode.extraJenkins`                                                 | Append additional settings under the 'jenkins' block                                                                                                                                                                                                       | `{}`                            |
+| `configAsCode.extraConfig`                                                  | Append additional settings at the root of the configuration-as-code file                                                                                                                                                                                   | `{}`                            |
+| `configAsCode.extraKubernetes`                                              | Append additional settings under the Kubernetes cloud block                                                                                                                                                                                                | `{}`                            |
+| `configAsCode.extraClouds`                                                  | Additional clouds                                                                                                                                                                                                                                          | `[]`                            |
+| `configAsCode.existingConfigmap`                                            | Name of an existing configmap containing the config-as-code files.                                                                                                                                                                                         | `""`                            |
+| `configAsCode.autoReload.enabled`                                           | Enable the creation of the autoReload sidecar container.                                                                                                                                                                                                   | `true`                          |
+| `configAsCode.autoReload.initialDelay`                                      | In seconds, time                                                                                                                                                                                                                                           | `360`                           |
+| `configAsCode.autoReload.reqRetries`                                        |                                                                                                                                                                                                                                                            | `12`                            |
+| `configAsCode.autoReload.interval`                                          |                                                                                                                                                                                                                                                            | `10`                            |
+| `configAsCode.autoReload.command`                                           |                                                                                                                                                                                                                                                            | `[]`                            |
+| `configAsCode.autoReload.args`                                              |                                                                                                                                                                                                                                                            | `[]`                            |
+| `configAsCode.autoReload.extraEnvVars`                                      |                                                                                                                                                                                                                                                            | `[]`                            |
+| `configAsCode.autoReload.extraEnvVarsSecret`                                |                                                                                                                                                                                                                                                            | `""`                            |
+| `configAsCode.autoReload.extraEnvVarsCM`                                    |                                                                                                                                                                                                                                                            | `""`                            |
+| `configAsCode.autoReload.extraVolumeMounts`                                 |                                                                                                                                                                                                                                                            | `[]`                            |
+| `configAsCode.autoReload.containerSecurityContext.enabled`                  | Enabled containers' Security Context                                                                                                                                                                                                                       | `true`                          |
+| `configAsCode.autoReload.containerSecurityContext.seLinuxOptions`           | Set SELinux options in container                                                                                                                                                                                                                           | `{}`                            |
+| `configAsCode.autoReload.containerSecurityContext.runAsUser`                | Set containers' Security Context runAsUser                                                                                                                                                                                                                 | `1001`                          |
+| `configAsCode.autoReload.containerSecurityContext.runAsGroup`               | Set containers' Security Context runAsGroup                                                                                                                                                                                                                | `1001`                          |
+| `configAsCode.autoReload.containerSecurityContext.runAsNonRoot`             | Set container's Security Context runAsNonRoot                                                                                                                                                                                                              | `true`                          |
+| `configAsCode.autoReload.containerSecurityContext.privileged`               | Set container's Security Context privileged                                                                                                                                                                                                                | `false`                         |
+| `configAsCode.autoReload.containerSecurityContext.readOnlyRootFilesystem`   | Set container's Security Context readOnlyRootFilesystem                                                                                                                                                                                                    | `true`                          |
+| `configAsCode.autoReload.containerSecurityContext.allowPrivilegeEscalation` | Set container's Security Context allowPrivilegeEscalation                                                                                                                                                                                                  | `false`                         |
+| `configAsCode.autoReload.containerSecurityContext.capabilities.drop`        | List of capabilities to be dropped                                                                                                                                                                                                                         | `["ALL"]`                       |
+| `configAsCode.autoReload.containerSecurityContext.seccompProfile.type`      | Set container's Security Context seccomp profile                                                                                                                                                                                                           | `RuntimeDefault`                |
+| `configAsCode.autoReload.resourcesPreset`                                   | Set container resources according to one common preset (allowed values: none, nano, small, medium, large, xlarge, 2xlarge). This is ignored if configAsCode.autoReload.resources is set (configAsCode.autoReload.resources is recommended for production). | `none`                          |
+| `configAsCode.autoReload.resources`                                         | Set container requests and limits for different resources like CPU or memory (essential for production workloads)                                                                                                                                          | `{}`                            |
+| `agent.enabled`                                                             | Set to true to enable the configuration of Jenkins kubernetes agents                                                                                                                                                                                       | `false`                         |
+| `agent.image.registry`                                                      | Jenkins image registry                                                                                                                                                                                                                                     | `REGISTRY_NAME`                 |
+| `agent.image.repository`                                                    | Jenkins image repository                                                                                                                                                                                                                                   | `REPOSITORY_NAME/jenkins-agent` |
+| `agent.image.digest`                                                        | Jenkins image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag                                                                                                                                                    | `""`                            |
+| `agent.image.pullPolicy`                                                    | Jenkins image pull policy                                                                                                                                                                                                                                  | `IfNotPresent`                  |
+| `agent.image.pullSecrets`                                                   | Jenkins image pull secrets                                                                                                                                                                                                                                 | `[]`                            |
+| `agent.image.debug`                                                         | Enable image debug mode                                                                                                                                                                                                                                    | `false`                         |
+| `agent.templateLabel`                                                       | Label for the Kubernetes agent template                                                                                                                                                                                                                    | `kubernetes-agent`              |
+| `agent.podLabels`                                                           | Additional pod labels for the Jenkins agent pods                                                                                                                                                                                                           | `{}`                            |
+| `agent.annotations`                                                         | Additional pod annotations for the Jenkins agent pods                                                                                                                                                                                                      | `{}`                            |
+| `agent.sidecars`                                                            | Additional sidecar containers for the Jenkins agent pods                                                                                                                                                                                                   | `[]`                            |
+| `agent.command`                                                             | Override default container command (useful when using custom images)                                                                                                                                                                                       | `""`                            |
+| `agent.args`                                                                | Override default container args (useful when using custom images)                                                                                                                                                                                          | `""`                            |
+| `agent.containerExtraEnvVars`                                               | Additional env vars for the Jenkins agent pods                                                                                                                                                                                                             | `[]`                            |
+| `agent.podExtraEnvVars`                                                     | Additional env vars for the Jenkins agent pods                                                                                                                                                                                                             | `[]`                            |
+| `agent.extraAgentTemplate`                                                  | Extend the default agent template                                                                                                                                                                                                                          | `{}`                            |
+| `agent.extraTemplates`                                                      | Provide your own custom agent templates                                                                                                                                                                                                                    | `[]`                            |
+| `agent.resourcesPreset`                                                     | Set container resources according to one common preset (allowed values: none, nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored if agent.resources is set (agent.resources is recommended for production).                              | `small`                         |
+| `agent.resources`                                                           | Set container requests and limits for different resources like CPU or memory (essential for production workloads)                                                                                                                                          | `{}`                            |
+| `agent.containerSecurityContext.enabled`                                    | Enable container security context                                                                                                                                                                                                                          | `false`                         |
+| `agent.containerSecurityContext.seLinuxOptions`                             | Set SELinux options in container                                                                                                                                                                                                                           | `{}`                            |
+| `agent.containerSecurityContext.runAsUser`                                  | User ID for the agent container                                                                                                                                                                                                                            | `""`                            |
+| `agent.containerSecurityContext.runAsGroup`                                 | User ID for the agent container                                                                                                                                                                                                                            | `""`                            |
+| `agent.containerSecurityContext.privileged`                                 | Decide if the container runs privileged.                                                                                                                                                                                                                   | `false`                         |
+
+### Jenkins deployment parameters
+
+| Name                                                | Description                                                                                                                                                                                                       | Value            |
+| --------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------------- |
+| `updateStrategy.type`                               | Jenkins deployment strategy type                                                                                                                                                                                  | `RollingUpdate`  |
+| `priorityClassName`                                 | Jenkins pod priority class name                                                                                                                                                                                   | `""`             |
+| `schedulerName`                                     | Name of the k8s scheduler (other than default)                                                                                                                                                                    | `""`             |
+| `topologySpreadConstraints`                         | Topology Spread Constraints for pod assignment                                                                                                                                                                    | `[]`             |
+| `automountServiceAccountToken`                      | Mount Service Account token in pod                                                                                                                                                                                | `true`           |
+| `hostAliases`                                       | Jenkins pod host aliases                                                                                                                                                                                          | `[]`             |
+| `extraVolumes`                                      | Optionally specify extra list of additional volumes for Jenkins pods                                                                                                                                              | `[]`             |
+| `extraVolumeMounts`                                 | Optionally specify extra list of additional volumeMounts for Jenkins container(s)                                                                                                                                 | `[]`             |
+| `sidecars`                                          | Add additional sidecar containers to the Jenkins pod                                                                                                                                                              | `[]`             |
+| `initContainers`                                    | Add additional init containers to the Jenkins pods                                                                                                                                                                | `[]`             |
+| `pdb.create`                                        | Enable/disable a Pod Disruption Budget creation                                                                                                                                                                   | `true`           |
+| `pdb.minAvailable`                                  | Minimum number/percentage of pods that should remain scheduled                                                                                                                                                    | `""`             |
+| `pdb.maxUnavailable`                                | Maximum number/percentage of pods that may be made unavailable. Defaults to `1` if both `pdb.minAvailable` and `pdb.maxUnavailable` are empty.                                                                    | `""`             |
+| `lifecycleHooks`                                    | Add lifecycle hooks to the Jenkins deployment                                                                                                                                                                     | `{}`             |
+| `podLabels`                                         | Extra labels for Jenkins pods                                                                                                                                                                                     | `{}`             |
+| `podAnnotations`                                    | Annotations for Jenkins pods                                                                                                                                                                                      | `{}`             |
+| `podAffinityPreset`                                 | Pod affinity preset. Ignored if `affinity` is set. Allowed values: `soft` or `hard`                                                                                                                               | `""`             |
+| `podAntiAffinityPreset`                             | Pod anti-affinity preset. Ignored if `affinity` is set. Allowed values: `soft` or `hard`                                                                                                                          | `soft`           |
+| `nodeAffinityPreset.type`                           | Node affinity preset type. Ignored if `affinity` is set. Allowed values: `soft` or `hard`                                                                                                                         | `""`             |
+| `nodeAffinityPreset.key`                            | Node label key to match. Ignored if `affinity` is set                                                                                                                                                             | `""`             |
+| `nodeAffinityPreset.values`                         | Node label values to match. Ignored if `affinity` is set                                                                                                                                                          | `[]`             |
+| `affinity`                                          | Affinity for pod assignment                                                                                                                                                                                       | `{}`             |
+| `nodeSelector`                                      | Node labels for pod assignment                                                                                                                                                                                    | `{}`             |
+| `tolerations`                                       | Tolerations for pod assignment                                                                                                                                                                                    | `[]`             |
+| `resourcesPreset`                                   | Set container resources according to one common preset (allowed values: none, nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored if resources is set (resources is recommended for production). | `medium`         |
+| `resources`                                         | Set container requests and limits for different resources like CPU or memory (essential for production workloads)                                                                                                 | `{}`             |
+| `containerPorts.http`                               | Jenkins HTTP container port                                                                                                                                                                                       | `8080`           |
+| `containerPorts.https`                              | Jenkins HTTPS container port                                                                                                                                                                                      | `8443`           |
+| `containerPorts.agentListener`                      | Jenkins agent listener port, ignored if agent.enabled=false                                                                                                                                                       | `50000`          |
+| `podSecurityContext.enabled`                        | Enabled Jenkins pods' Security Context                                                                                                                                                                            | `true`           |
+| `podSecurityContext.fsGroupChangePolicy`            | Set filesystem group change policy                                                                                                                                                                                | `Always`         |
+| `podSecurityContext.sysctls`                        | Set kernel settings using the sysctl interface                                                                                                                                                                    | `[]`             |
+| `podSecurityContext.supplementalGroups`             | Set filesystem extra groups                                                                                                                                                                                       | `[]`             |
+| `podSecurityContext.fsGroup`                        | Set Jenkins pod's Security Context fsGroup                                                                                                                                                                        | `1001`           |
+| `containerSecurityContext.enabled`                  | Enabled containers' Security Context                                                                                                                                                                              | `true`           |
+| `containerSecurityContext.seLinuxOptions`           | Set SELinux options in container                                                                                                                                                                                  | `{}`             |
+| `containerSecurityContext.runAsUser`                | Set containers' Security Context runAsUser                                                                                                                                                                        | `1001`           |
+| `containerSecurityContext.runAsGroup`               | Set containers' Security Context runAsGroup                                                                                                                                                                       | `1001`           |
+| `containerSecurityContext.runAsNonRoot`             | Set container's Security Context runAsNonRoot                                                                                                                                                                     | `true`           |
+| `containerSecurityContext.privileged`               | Set container's Security Context privileged                                                                                                                                                                       | `false`          |
+| `containerSecurityContext.readOnlyRootFilesystem`   | Set container's Security Context readOnlyRootFilesystem                                                                                                                                                           | `true`           |
+| `containerSecurityContext.allowPrivilegeEscalation` | Set container's Security Context allowPrivilegeEscalation                                                                                                                                                         | `false`          |
+| `containerSecurityContext.capabilities.drop`        | List of capabilities to be dropped                                                                                                                                                                                | `["ALL"]`        |
+| `containerSecurityContext.seccompProfile.type`      | Set container's Security Context seccomp profile                                                                                                                                                                  | `RuntimeDefault` |
+| `startupProbe.enabled`                              | Enable startupProbe                                                                                                                                                                                               | `false`          |
+| `startupProbe.initialDelaySeconds`                  | Initial delay seconds for startupProbe                                                                                                                                                                            | `180`            |
+| `startupProbe.periodSeconds`                        | Period seconds for startupProbe                                                                                                                                                                                   | `10`             |
+| `startupProbe.timeoutSeconds`                       | Timeout seconds for startupProbe                                                                                                                                                                                  | `5`              |
+| `startupProbe.failureThreshold`                     | Failure threshold for startupProbe                                                                                                                                                                                | `6`              |
+| `startupProbe.successThreshold`                     | Success threshold for startupProbe                                                                                                                                                                                | `1`              |
+| `livenessProbe.enabled`                             | Enable livenessProbe                                                                                                                                                                                              | `true`           |
+| `livenessProbe.initialDelaySeconds`                 | Initial delay seconds for livenessProbe                                                                                                                                                                           | `180`            |
+| `livenessProbe.periodSeconds`                       | Period seconds for livenessProbe                                                                                                                                                                                  | `10`             |
+| `livenessProbe.timeoutSeconds`                      | Timeout seconds for livenessProbe                                                                                                                                                                                 | `5`              |
+| `livenessProbe.failureThreshold`                    | Failure threshold for livenessProbe                                                                                                                                                                               | `6`              |
+| `livenessProbe.successThreshold`                    | Success threshold for livenessProbe                                                                                                                                                                               | `1`              |
+| `readinessProbe.enabled`                            | Enable readinessProbe                                                                                                                                                                                             | `true`           |
+| `readinessProbe.initialDelaySeconds`                | Initial delay seconds for readinessProbe                                                                                                                                                                          | `30`             |
+| `readinessProbe.periodSeconds`                      | Period seconds for readinessProbe                                                                                                                                                                                 | `5`              |
+| `readinessProbe.timeoutSeconds`                     | Timeout seconds for readinessProbe                                                                                                                                                                                | `3`              |
+| `readinessProbe.failureThreshold`                   | Failure threshold for readinessProbe                                                                                                                                                                              | `3`              |
+| `readinessProbe.successThreshold`                   | Success threshold for readinessProbe                                                                                                                                                                              | `1`              |
+| `customStartupProbe`                                | Custom startupProbe that overrides the default one                                                                                                                                                                | `{}`             |
+| `customLivenessProbe`                               | Custom livenessProbe that overrides the default one                                                                                                                                                               | `{}`             |
+| `customReadinessProbe`                              | Custom readinessProbe that overrides the default one                                                                                                                                                              | `{}`             |
+
+### Traffic Exposure Parameters
+
+| Name                                            | Description                                                                                                                      | Value                    |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| `service.type`                                  | Jenkins service type                                                                                                             | `LoadBalancer`           |
+| `service.ports.http`                            | Jenkins service HTTP port                                                                                                        | `80`                     |
+| `service.ports.https`                           | Jenkins service HTTPS port                                                                                                       | `443`                    |
+| `service.nodePorts.http`                        | Node port for HTTP                                                                                                               | `""`                     |
+| `service.nodePorts.https`                       | Node port for HTTPS                                                                                                              | `""`                     |
+| `service.clusterIP`                             | Jenkins service Cluster IP                                                                                                       | `""`                     |
+| `service.loadBalancerIP`                        | Jenkins service Load Balancer IP                                                                                                 | `""`                     |
+| `service.loadBalancerSourceRanges`              | Jenkins service Load Balancer sources                                                                                            | `[]`                     |
+| `service.externalTrafficPolicy`                 | Jenkins service external traffic policy                                                                                          | `Cluster`                |
+| `service.annotations`                           | Additional custom annotations for Jenkins service                                                                                | `{}`                     |
+| `service.extraPorts`                            | Extra ports to expose (normally used with the `sidecar` value)                                                                   | `[]`                     |
+| `service.sessionAffinity`                       | Session Affinity for Kubernetes service, can be "None" or "ClientIP"                                                             | `None`                   |
+| `service.sessionAffinityConfig`                 | Additional settings for the sessionAffinity                                                                                      | `{}`                     |
+| `networkPolicy.enabled`                         | Specifies whether a NetworkPolicy should be created                                                                              | `true`                   |
+| `networkPolicy.allowExternal`                   | Don't require server label for connections                                                                                       | `true`                   |
+| `networkPolicy.allowExternalEgress`             | Allow the pod to access any range of port and all destinations.                                                                  | `true`                   |
+| `networkPolicy.kubeAPIServerPorts`              | List of possible endpoints to kube-apiserver (limit to your cluster settings to increase security)                               | `[]`                     |
+| `networkPolicy.extraIngress`                    | Add extra ingress rules to the NetworkPolicy                                                                                     | `[]`                     |
+| `networkPolicy.extraEgress`                     | Add extra ingress rules to the NetworkPolicy                                                                                     | `[]`                     |
+| `networkPolicy.ingressNSMatchLabels`            | Labels to match to allow traffic from other namespaces                                                                           | `{}`                     |
+| `networkPolicy.ingressNSPodMatchLabels`         | Pod labels to match to allow traffic from other namespaces                                                                       | `{}`                     |
+| `agentListenerService.enabled`                  |                                                                                                                                  | `true`                   |
+| `agentListenerService.type`                     | Jenkins service type                                                                                                             | `ClusterIP`              |
+| `agentListenerService.ports.agentListener`      | Jenkins service agent listener port                                                                                              | `50000`                  |
+| `agentListenerService.nodePorts.agentListener`  | Node port for agent listener                                                                                                     | `""`                     |
+| `agentListenerService.clusterIP`                | Jenkins service Cluster IP                                                                                                       | `""`                     |
+| `agentListenerService.loadBalancerIP`           | Jenkins service Load Balancer IP                                                                                                 | `""`                     |
+| `agentListenerService.loadBalancerSourceRanges` | Jenkins service Load Balancer sources                                                                                            | `[]`                     |
+| `agentListenerService.externalTrafficPolicy`    | Jenkins service external traffic policy                                                                                          | `Cluster`                |
+| `agentListenerService.annotations`              | Additional custom annotations for Jenkins service                                                                                | `{}`                     |
+| `agentListenerService.extraPorts`               | Extra ports to expose (normally used with the `sidecar` value)                                                                   | `[]`                     |
+| `agentListenerService.sessionAffinity`          | Session Affinity for Kubernetes service, can be "None" or "ClientIP"                                                             | `None`                   |
+| `agentListenerService.sessionAffinityConfig`    | Additional settings for the sessionAffinity                                                                                      | `{}`                     |
+| `ingress.enabled`                               | Enable ingress record generation for Jenkins                                                                                     | `false`                  |
+| `ingress.pathType`                              | Ingress path type                                                                                                                | `ImplementationSpecific` |
+| `ingress.apiVersion`                            | Force Ingress API version (automatically detected if not set)                                                                    | `""`                     |
+| `ingress.hostname`                              | Default host for the ingress record                                                                                              | `jenkins.local`          |
+| `ingress.path`                                  | Default path for the ingress record                                                                                              | `/`                      |
+| `ingress.annotations`                           | Additional annotations for the Ingress resource. To enable certificate autogeneration, place here your cert-manager annotations. | `{}`                     |
+| `ingress.tls`                                   | Enable TLS configuration for the host defined at `ingress.hostname` parameter                                                    | `false`                  |
+| `ingress.selfSigned`                            | Create a TLS secret for this ingress record using self-signed certificates generated by Helm                                     | `false`                  |
+| `ingress.extraHosts`                            | An array with additional hostname(s) to be covered with the ingress record                                                       | `[]`                     |
+| `ingress.extraPaths`                            | An array with additional arbitrary paths that may need to be added to the ingress under the main host                            | `[]`                     |
+| `ingress.extraTls`                              | TLS configuration for additional hostname(s) to be covered with this ingress record                                              | `[]`                     |
+| `ingress.secrets`                               | Custom TLS certificates as secrets                                                                                               | `[]`                     |
+| `ingress.ingressClassName`                      | IngressClass that will be be used to implement the Ingress (Kubernetes 1.18+)                                                    | `""`                     |
+| `ingress.extraRules`                            | Additional rules to be covered with this ingress record                                                                          | `[]`                     |
+
+### Persistence Parameters
+
+| Name                                               | Description                                                                                                                                                                                                                                           | Value                      |
+| -------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------- |
+| `persistence.enabled`                              | Enable persistence using Persistent Volume Claims                                                                                                                                                                                                     | `true`                     |
+| `persistence.storageClass`                         | Persistent Volume storage class                                                                                                                                                                                                                       | `""`                       |
+| `persistence.existingClaim`                        | Use a existing PVC which must be created manually before bound                                                                                                                                                                                        | `""`                       |
+| `persistence.annotations`                          | Additional custom annotations for the PVC                                                                                                                                                                                                             | `{}`                       |
+| `persistence.accessModes`                          | Persistent Volume access modes                                                                                                                                                                                                                        | `[]`                       |
+| `persistence.size`                                 | Persistent Volume size                                                                                                                                                                                                                                | `8Gi`                      |
+| `persistence.selector`                             | Selector to match an existing Persistent Volume for Ingester's data PVC                                                                                                                                                                               | `{}`                       |
+| `volumePermissions.enabled`                        | Enable init container that changes the owner/group of the PV mount point to `runAsUser:fsGroup`                                                                                                                                                       | `false`                    |
+| `volumePermissions.image.registry`                 | OS Shell + Utility image registry                                                                                                                                                                                                                     | `REGISTRY_NAME`            |
+| `volumePermissions.image.repository`               | OS Shell + Utility image repository                                                                                                                                                                                                                   | `REPOSITORY_NAME/os-shell` |
+| `volumePermissions.image.digest`                   | OS Shell + Utility image digest in the way sha256:aa.... Please note this parameter, if set, will override the tag                                                                                                                                    | `""`                       |
+| `volumePermissions.image.pullPolicy`               | OS Shell + Utility image pull policy                                                                                                                                                                                                                  | `IfNotPresent`             |
+| `volumePermissions.image.pullSecrets`              | OS Shell + Utility image pull secrets                                                                                                                                                                                                                 | `[]`                       |
+| `volumePermissions.resourcesPreset`                | Set container resources according to one common preset (allowed values: none, nano, micro, small, medium, large, xlarge, 2xlarge). This is ignored if volumePermissions.resources is set (volumePermissions.resources is recommended for production). | `nano`                     |
+| `volumePermissions.resources`                      | Set container requests and limits for different resources like CPU or memory (essential for production workloads)                                                                                                                                     | `{}`                       |
+| `volumePermissions.securityContext.seLinuxOptions` | Set SELinux options in container                                                                                                                                                                                                                      | `{}`                       |
+| `volumePermissions.securityContext.runAsUser`      | Set init container's Security Context runAsUser                                                                                                                                                                                                       | `0`                        |
+
+### Other Parameters
+
+| Name                                          | Description                                                      | Value   |
+| --------------------------------------------- | ---------------------------------------------------------------- | ------- |
+| `rbac.create`                                 | Specifies whether RBAC resources should be created               | `true`  |
+| `rbac.rules`                                  | Custom RBAC rules to set                                         | `[]`    |
+| `serviceAccount.create`                       | Specifies whether a ServiceAccount should be created             | `true`  |
+| `serviceAccount.name`                         | The name of the ServiceAccount to use.                           | `""`    |
+| `serviceAccount.annotations`                  | Additional Service Account annotations (evaluated as a template) | `{}`    |
+| `serviceAccount.automountServiceAccountToken` | Automount service account token for the server service account   | `false` |
+
+The above parameters map to the env variables defined in [bitnami/jenkins](https://github.com/bitnami/containers/tree/main/bitnami/jenkins). For more information please refer to the [bitnami/jenkins](https://github.com/bitnami/containers/tree/main/bitnami/jenkins) image documentation.
+
+Specify each parameter using the `--set key=value[,key=value]` argument to `helm install`. For example,
 
 ```console
-helm install [RELEASE_NAME] oci://ghcr.io/jenkinsci/helm-charts/jenkins [flags]
+helm install my-release \
+  --set jenkinsUser=admin \
+  --set jenkinsPassword=password \
+  oci://REGISTRY_NAME/REPOSITORY_NAME/jenkins
 ```
 
-_See [configuration](#configuration) below._
+> Note: You need to substitute the placeholders `REGISTRY_NAME` and `REPOSITORY_NAME` with a reference to your Helm chart registry and repository. For example, in the case of Bitnami, you need to use `REGISTRY_NAME=registry-1.docker.io` and `REPOSITORY_NAME=bitnamicharts`.
 
-_See [helm install](https://helm.sh/docs/helm/helm_install/) for command documentation._
+The above command sets the Jenkins administrator account username and password to `admin` and `password` respectively.
 
-## Uninstall Chart
+> NOTE: Once this chart is deployed, it is not possible to change the application's access credentials, such as usernames or passwords, using Helm. To change these application credentials after deployment, delete any persistent volumes (PVs) used by the chart and re-deploy it, or use the application's built-in administrative tools if available.
+
+Alternatively, a YAML file that specifies the values for the above parameters can be provided while installing the chart. For example,
 
 ```console
-# Helm 3
-$ helm uninstall [RELEASE_NAME]
+helm install my-release -f values.yaml oci://REGISTRY_NAME/REPOSITORY_NAME/jenkins
 ```
 
-This removes all the Kubernetes components associated with the chart and deletes the release.
+> Note: You need to substitute the placeholders `REGISTRY_NAME` and `REPOSITORY_NAME` with a reference to your Helm chart registry and repository. For example, in the case of Bitnami, you need to use `REGISTRY_NAME=registry-1.docker.io` and `REPOSITORY_NAME=bitnamicharts`.
+> **Tip**: You can use the default [values.yaml](https://github.com/bitnami/charts/tree/main/bitnami/jenkins/values.yaml)
 
-_See [helm uninstall](https://helm.sh/docs/helm/helm_uninstall/) for command documentation._
+## Troubleshooting
 
-## Upgrade Chart
+Find more information about how to deal with common errors related to Bitnami's Helm charts in [this troubleshooting guide](https://docs.bitnami.com/general/how-to/troubleshoot-helm-chart-issues).
+
+## Upgrading
+
+### To 13.5.0
+
+This version introduces image verification for security purposes. To disable it, set `global.security.allowInsecureImages` to `true`. More details at [GitHub issue](https://github.com/bitnami/charts/issues/30850).
+
+### To 13.0.0
+
+This major bump changes the following security defaults:
+
+- `runAsGroup` is changed from `0` to `1001`
+- `readOnlyRootFilesystem` is set to `true`
+- `resourcesPreset` is changed from `none` to the minimum size working in our test suites (NOTE: `resourcesPreset` is not meant for production usage, but `resources` adapted to your use case).
+- `global.compatibility.openshift.adaptSecurityContext` is changed from `disabled` to `auto`.
+
+This could potentially break any customization or init scripts used in your deployment. If this is the case, change the default values to the previous ones.
+
+### To 11.0.0
+
+This major release no longer contains preinstalled plugins. In case you want to install a plugin you can follow the [official documentation](https://www.jenkins.io/doc/book/managing/plugins/)
+
+### To 10.0.0
+
+This major release is no longer contains the metrics section because the container `bitnami/enkins-exporter` has been deprecated due to the upstream project is not maintained.
+
+### To 9.0.0
+
+This major release renames several values in this chart and adds missing features, in order to be inline with the rest of assets in the Bitnami charts repository.
+
+Affected values:
+
+- `service.port` renamed as `service.ports.http`.
+- `service.httpsPort` renamed as `service.ports.https`.
+- `serviceMonitor.additionalLabels` renamed as `serviceMonitor.labels`.
+
+### To 8.0.0
+
+Due to recent changes in the container image (see [Notable changes](https://github.com/bitnami/containers/tree/main/bitnami/jenkins#notable-changes)), the major version of the chart has been bumped preemptively.
+
+Upgrading from version `7.x.x` should be possible following the workaround below (the following example assumes that the release name is `jenkins`):
+
+- Create a backup of your Jenkins data (e.g. using Velero to backup your PV)
+- Remove Jenkins deployment:
 
 ```console
-# Helm 3
-$ helm upgrade [RELEASE_NAME] jenkins/jenkins [flags]
+export JENKINS_PASSWORD=$(kubectl get secret --namespace default jenkins -o jsonpath="{.data.jenkins-password}" | base64 -d)
+kubectl delete deployments.apps jenkins
 ```
 
-_See [helm upgrade](https://helm.sh/docs/helm/helm_upgrade/) for command documentation._
-
-Visit the chart's [CHANGELOG](https://github.com/jenkinsci/helm-charts/blob/main/charts/jenkins/CHANGELOG.md) to view the chart's release history.
-For migration between major version check [migration guide](#migration-guide).
-
-## Building weekly releases
-
-The default charts target Long-Term-Support (LTS) releases of Jenkins.
-To use other versions the easiest way is to update the image tag to the version you want.
-You can also rebuild the chart if you want the `appVersion` field to match.
-
-## Configuration
-
-See [Customizing the Chart Before Installing](https://helm.sh/docs/intro/using_helm/#customizing-the-chart-before-installing).
-To see all configurable options with detailed comments, visit the chart's [values.yaml](https://github.com/jenkinsci/helm-charts/blob/main/charts/jenkins/values.yaml), or run these configuration commands:
+- Upgrade your release and delete data that should not be persisted anymore:
 
 ```console
-# Helm 3
-$ helm show values jenkins/jenkins
+helm upgrade jenkins oci://REGISTRY_NAME/REPOSITORY_NAME/jenkins --set jenkinsPassword=$JENKINS_PASSWORD --set jenkinsHome=/bitnami/jenkins/jenkins_home
+kubectl exec -it $(kubectl get pod -l app.kubernetes.io/instance=jenkins,app.kubernetes.io/name=jenkins -o jsonpath="{.items[0].metadata.name}") -- find /bitnami/jenkins -mindepth 1 -maxdepth 1 -not -name jenkins_home -exec rm -rf {} \;
 ```
 
-For a summary of all configurable options, see [VALUES.md](https://github.com/jenkinsci/helm-charts/blob/main/charts/jenkins/VALUES.md).
+> Note: You need to substitute the placeholders `REGISTRY_NAME` and `REPOSITORY_NAME` with a reference to your Helm chart registry and repository. For example, in the case of Bitnami, you need to use `REGISTRY_NAME=registry-1.docker.io` and `REPOSITORY_NAME=bitnamicharts`.
 
-### Configure Security Realm and Authorization Strategy
+### To 7.0.0
 
-This chart configured a `securityRealm` and `authorizationStrategy` as shown below:
+Chart labels were adapted to follow the [Helm charts standard labels](https://helm.sh/docs/chart_best_practices/labels/#standard-labels).
 
-```yaml
-controller:
-  JCasC:
-    securityRealm: |-
-      local:
-        allowsSignup: false
-        enableCaptcha: false
-        users:
-        - id: "${chart-admin-username}"
-          name: "Jenkins Admin"
-          password: "${chart-admin-password}"
-    authorizationStrategy: |-
-      loggedInUsersCanDoAnything:
-        allowAnonymousRead: false
-```
+Consequences:
 
-With the configuration above there is only a single user.
-This is fine for getting started quickly, but it needs to be adjusted for any serious environment.
-
-So you should adjust this to suite your needs.
-That could be using LDAP / OIDC / .. as authorization strategy and use globalMatrix as authorization strategy to configure more fine-grained permissions.
-
-### Consider using a custom image
-
-This chart allows the user to specify plugins which should be installed. However, for production use cases one should consider to build a custom Jenkins image which has all required plugins pre-installed.
-This way you can be sure which plugins Jenkins is using when starting up and you avoid trouble in case of connectivity issues to the Jenkins update site.
-
-The [docker repository](https://github.com/jenkinsci/docker) for the Jenkins image contains [documentation](https://github.com/jenkinsci/docker#preinstalling-plugins) how to do it.
-
-Here is an example how that can be done:
-
-```Dockerfile
-FROM jenkins/jenkins:lts
-RUN jenkins-plugin-cli --plugins kubernetes workflow-aggregator git configuration-as-code
-```
-
-NOTE: If you want a reproducible build then you should specify a non-floating tag for the image `jenkins/jenkins:2.249.3` and specify plugin versions.
-
-Once you built the image and pushed it to your registry you can specify it in your values file like this:
-
-```yaml
-controller:
-  image: "registry/my-jenkins"
-  tag: "v1.2.3"
-  installPlugins: false
-```
-
-Notice: `installPlugins` is set to false to disable plugin download. In this case, the image `registry/my-jenkins:v1.2.3` must have the plugins specified as default value for [the `controller.installPlugins` directive](https://github.com/jenkinsci/helm-charts/blob/main/charts/jenkins/VALUES_SUMMARY.md#jenkins-plugins) to ensure that the configuration side-car system works as expected.
-
-In case you are using a private registry you can use 'imagePullSecretName' to specify the name of the secret to use when pulling the image:
-
-```yaml
-controller:
-  image: "registry/my-jenkins"
-  tag: "v1.2.3"
-  imagePullSecretName: registry-secret
-  installPlugins: false
-```
-
-### External URL Configuration
-
-If you are using the ingress definitions provided by this chart via the `controller.ingress` block the configured hostname will be the ingress hostname starting with `https://` or `http://` depending on the `tls` configuration.
-The Protocol can be overwritten by specifying `controller.jenkinsUrlProtocol`.
-
-If you are not using the provided ingress you can specify `controller.jenkinsUrl` to change the URL definition.
-
-### Configuration as Code
-
-Jenkins Configuration as Code (JCasC) is now a standard component in the Jenkins project.
-To allow JCasC's configuration from the helm values, the plugin [`configuration-as-code`](https://plugins.jenkins.io/configuration-as-code/) must be installed in the Jenkins Controller's Docker image (which is the case by default as specified by the [default value of the directive `controller.installPlugins`](https://github.com/jenkinsci/helm-charts/blob/main/charts/jenkins/VALUES_SUMMARY.md#jenkins-plugins)).
-
-JCasc configuration is passed through Helm values under the key `controller.JCasC`.
-The section ["Jenkins Configuration as Code (JCasC)" of the page "VALUES_SUMMARY.md"](https://github.com/jenkinsci/helm-charts/blob/main/charts/jenkins/VALUES_SUMMARY.md#jenkins-configuration-as-code-jcasc) lists all the possible directives.
-
-In particular, you may specify custom JCasC scripts by adding sub-key under the `controller.JCasC.configScripts` for each configuration area where each corresponds to a plugin or section of the UI.
-
-The sub-keys (prior to `|` character) are only labels used to give the section a meaningful name.
-The only restriction is they must conform to RFC 1123 definition of a DNS label, so they may only contain lowercase letters, numbers, and hyphens.
-
-Each key will become the name of a configuration yaml file on the controller in `/var/jenkins_home/casc_configs` (by default) and will be processed by the Configuration as Code Plugin during Jenkins startup.
-
-The lines after each `|` become the content of the configuration yaml file.
-
-The first line after this is a JCasC root element, e.g. jenkins, credentials, etc.
-
-Best reference is the Documentation link here: `https://<jenkins_url>/configuration-as-code`.
-
-The example below sets custom systemMessage:
-
-```yaml
-controller:
-  JCasC:
-    configScripts:
-      welcome-message: |
-        jenkins:
-          systemMessage: Welcome to our CI\CD server.
-```
-
-More complex example that creates ldap settings:
-
-```yaml
-controller:
-  JCasC:
-    configScripts:
-      ldap-settings: |
-        jenkins:
-          securityRealm:
-            ldap:
-              configurations:
-                - server: ldap.acme.com
-                  rootDN: dc=acme,dc=uk
-                  managerPasswordSecret: ${LDAP_PASSWORD}
-                  groupMembershipStrategy:
-                    fromUserRecord:
-                      attributeName: "memberOf"
-```
-
-Keep in mind that default configuration file already contains some values that you won't be able to override under configScripts section.
-
-For example, you can not configure Jenkins URL and System Admin email address like this because of conflicting configuration error.
-
-Incorrect:
-
-```yaml
-controller:
-  JCasC:
-    configScripts:
-      jenkins-url: |
-        unclassified:
-          location:
-            url: https://example.com/jenkins
-            adminAddress: example@mail.com
-```
-
-Correct:
-
-```yaml
-controller:
-  jenkinsUrl: https://example.com/jenkins
-  jenkinsAdminEmail: example@mail.com
-```
-
-Further JCasC examples can be found [here](https://github.com/jenkinsci/configuration-as-code-plugin/tree/master/demos).
-
-#### Breaking out large Config as Code scripts
-
-Jenkins Config as Code scripts can become quite large, and maintaining all of your scripts within one yaml file can be difficult.  The Config as Code plugin itself suggests updating the `CASC_JENKINS_CONFIG` environment variable to be a comma separated list of paths for the plugin to traverse, picking up the yaml files as needed.  
-However, under the Jenkins helm chart, this `CASC_JENKINS_CONFIG` value is maintained through the templates.  A better solution is to split your `controller.JCasC.configScripts` into separate values files, and provide each file during the helm install.
-
-For example, you can have a values file (e.g values_main.yaml) that defines the values described in the `VALUES_SUMMARY.md` for your Jenkins configuration:
-
-```yaml
-jenkins:
-  controller:
-    jenkinsUrlProtocol: https
-    installPlugins: false
-    ...
-```
-
-In a second file (e.g values_jenkins_casc.yaml), you can define a section of your config scripts:
-
-```yaml
-jenkins:
-  controller:
-    JCasC:
-      configScripts:
-        jenkinsCasc:  |
-          jenkins:
-            disableRememberMe: false
-            mode: NORMAL
-            ...
-```
-
-And keep extending your config scripts by creating more files (so not all config scripts are located in one yaml file for better maintenance):
-
-values_jenkins_unclassified.yaml
-
-```yaml
-jenkins:
-  controller:
-    JCasC:
-      configScripts:
-        unclassifiedCasc: |
-          unclassified:
-            ...
-```
-
-When installing, you provide all relevant yaml files (e.g `helm install -f values_main.yaml -f values_jenkins_casc.yaml -f values_jenkins_unclassified.yaml ...`).  Instead of updating the `CASC_JENKINS_CONFIG` environment variable to include multiple paths, multiple CasC yaml files will be created in the same path `var/jenkins_home/casc_configs`.
-
-#### Config as Code With or Without Auto-Reload
-
-Config as Code changes (to `controller.JCasC.configScripts`) can either force a new pod to be created and only be applied at next startup, or can be auto-reloaded on-the-fly.
-If you set `controller.sidecars.configAutoReload.enabled` to `true`, a second, auxiliary container will be installed into the Jenkins controller pod, known as a "sidecar".
-This watches for changes to configScripts, copies the content onto the Jenkins file-system and issues a POST to `http://<jenkins_url>/reload-configuration-as-code` with a pre-shared key.
-You can monitor this sidecar's logs using command `kubectl logs <controller_pod> -c config-reload -f`.
-If you want to enable auto-reload then you also need to configure rbac as the container which triggers the reload needs to watch the config maps:
-
-```yaml
-controller:
-  sidecars:
-    configAutoReload:
-      enabled: true
-rbac:
-  create: true
-```
-
-### Allow Limited HTML Markup in User-Submitted Text
-
-Some third-party systems (e.g. GitHub) use HTML-formatted data in their payload sent to a Jenkins webhook (e.g. URL of a pull-request being built).
-To display such data as processed HTML instead of raw text set `controller.enableRawHtmlMarkupFormatter` to true.
-This option requires installation of the [OWASP Markup Formatter Plugin (antisamy-markup-formatter)](https://plugins.jenkins.io/antisamy-markup-formatter/).
-This plugin is **not** installed by default but may be added to `controller.additionalPlugins`.
-
-### Change max connections to Kubernetes API
-When using agents with containers other than JNLP, The kubernetes plugin will communicate with those containers using the Kubernetes API. this changes the maximum concurrent connections
-```yaml
-agent:
-  maxRequestsPerHostStr: "32"
-```
-This will change the configuration of the kubernetes "cloud" (as called by jenkins) that is created automatically as part of this helm chart.
-
-### Change container cleanup timeout API
-For tasks that use very large images, this timeout can be increased to avoid early termination of the task while the Kubernetes pod is still deploying.
-```yaml
-agent:
-  retentionTimeout: "32"
-```
-This will change the configuration of the kubernetes "cloud" (as called by jenkins) that is created automatically as part of this helm chart.
-
-### Change seconds to wait for pod to be running
-This will change how long Jenkins will wait (seconds) for pod to be in running state.
-```yaml
-agent:
-  waitForPodSec: "32"
-```
-This will change the configuration of the kubernetes "cloud" (as called by jenkins) that is created automatically as part of this helm chart.
-
-### Mounting Volumes into Agent Pods
-
-Your Jenkins Agents will run as pods, and it's possible to inject volumes where needed:
-
-```yaml
-agent:
-  volumes:
-  - type: Secret
-    secretName: jenkins-mysecrets
-    mountPath: /var/run/secrets/jenkins-mysecrets
-```
-
-The supported volume types are: `ConfigMap`, `EmptyDir`, `HostPath`, `Nfs`, `PVC`, `Secret`.
-Each type supports a different set of configurable attributes, defined by [the corresponding Java class](https://github.com/jenkinsci/kubernetes-plugin/tree/master/src/main/java/org/csanchez/jenkins/plugins/kubernetes/volumes).
-
-### NetworkPolicy
-
-To make use of the NetworkPolicy resources created by default, install [a networking plugin that implements the Kubernetes NetworkPolicy spec](https://kubernetes.io/docs/tasks/administer-cluster/declare-network-policy#before-you-begin).
-
-[Install](#install-chart) helm chart with network policy enabled by setting `networkPolicy.enabled` to `true`.
-
-You can use `controller.networkPolicy.internalAgents` and `controller.networkPolicy.externalAgents` stanzas for fine-grained controls over where internal/external agents can connect from.
-Internal ones are allowed based on pod labels and (optionally) namespaces, and external ones are allowed based on IP ranges.
-
-### Script approval list
-
-`controller.scriptApproval` allows to pass function signatures that will be allowed in pipelines.
-Example:
-
-```yaml
-controller:
-  scriptApproval:
-    - "method java.util.Base64$Decoder decode java.lang.String"
-    - "new java.lang.String byte[]"
-    - "staticMethod java.util.Base64 getDecoder"
-```
-
-### Custom Labels
-
-`controller.serviceLabels` can be used to add custom labels in `jenkins-controller-svc.yaml`.
-For example:
-
-```yaml
-ServiceLabels:
-  expose: true
-```
-
-### Persistence
-
-The Jenkins image stores persistence under `/var/jenkins_home` path of the container.
-A dynamically managed Persistent Volume Claim is used to keep the data across deployments, by default.
-This is known to work in GCE, AWS, and minikube. Alternatively, a previously configured Persistent Volume Claim can be used.
-
-It is possible to mount several volumes using `persistence.volumes` and `persistence.mounts` parameters.
-See additional `persistence` values using [configuration commands](#configuration).
-
-#### Existing PersistentVolumeClaim
-
-1. Create the PersistentVolume
-2. Create the PersistentVolumeClaim
-3. [Install](#install-chart) the chart, setting `persistence.existingClaim` to `PVC_NAME`
-
-#### Long Volume Attach/Mount Times
-
-Certain volume type and filesystem format combinations may experience long
-attach/mount times, [10 or more minutes][K8S_VOLUME_TIMEOUT], when using
-`fsGroup`.  This issue may result in the following entries in the pod's event
-history:
+- Backwards compatibility is not guaranteed. However, you can easily workaround this issue by removing Jenkins deployment before upgrading (the following example assumes that the release name is `jenkins`):
 
 ```console
-Warning  FailedMount  38m                kubelet, aks-default-41587790-2 Unable to attach or mount volumes: unmounted volumes=[jenkins-home], unattached volumes=[plugins plugin-dir jenkins-token-rmq2g sc-config-volume tmp jenkins-home jenkins-config secrets-dir]: timed out waiting for the condition
+export JENKINS_PASSWORD=$(kubectl get secret --namespace default jenkins -o jsonpath="{.data.jenkins-password}" | base64 -d)
+kubectl delete deployments.apps jenkins
+helm upgrade jenkins oci://REGISTRY_NAME/REPOSITORY_NAME/jenkins --set jenkinsPassword=$JENKINS_PASSWORD
 ```
 
-In these cases, experiment with replacing `fsGroup` with
-`supplementalGroups` in the pod's `securityContext`.  This can be achieved by
-setting the `controller.podSecurityContextOverride` Helm chart value to
-something like:
+> Note: You need to substitute the placeholders `REGISTRY_NAME` and `REPOSITORY_NAME` with a reference to your Helm chart registry and repository. For example, in the case of Bitnami, you need to use `REGISTRY_NAME=registry-1.docker.io` and `REPOSITORY_NAME=bitnamicharts`.
 
-```yaml
-controller:
-  podSecurityContextOverride:
-    runAsNonRoot: true
-    runAsUser: 1000
-    supplementalGroups: [1000]
+### To 6.1.0
+
+This version also introduces `bitnami/common`, a [library chart](https://helm.sh/docs/topics/library_charts/#helm) as a dependency. More documentation about this new utility could be found [here](https://github.com/bitnami/charts/tree/main/bitnami/common#bitnami-common-library-chart). Please, make sure that you have updated the chart dependencies before executing any upgrade.
+
+### To 6.0.0
+
+[On November 13, 2020, Helm v2 support formally ended](https://github.com/helm/charts#status-of-the-project). This major version is the result of the required changes applied to the Helm Chart to be able to incorporate the different features added in Helm v3 and to be consistent with the Helm project itself regarding the Helm v2 EOL.
+
+### To 5.0.0
+
+The [Bitnami Jenkins](https://github.com/bitnami/containers/tree/main/bitnami/jenkins) image was migrated to a "non-root" user approach. Previously the container ran as the `root` user and the Jenkins service was started as the `jenkins` user. From now on, both the container and the Jenkins service run as user `jenkins` (`uid=1001`). You can revert this behavior by setting the parameters `securityContext.runAsUser`, and `securityContext.fsGroup` to `root`.
+Ingress configuration was also adapted to follow the Helm charts best practices.
+
+Consequences:
+
+- No "privileged" actions are allowed anymore.
+- Backwards compatibility is not guaranteed when persistence is enabled.
+
+To upgrade to `5.0.0`, install a new Jenkins chart, and migrate your Jenkins data ensuring the `jenkins` user has the appropriate permissions.
+
+### To 4.0.0
+
+Helm performs a lookup for the object based on its group (apps), version (v1), and kind (Deployment). Also known as its GroupVersionKind, or GVK. Changing the GVK is considered a compatibility breaker from Kubernetes' point of view, so you cannot "upgrade" those objects to the new GVK in-place. Earlier versions of Helm 3 did not perform the lookup correctly which has since been fixed to match the spec.
+
+In 4dfac075aacf74405e31ae5b27df4369e84eb0b0 the `apiVersion` of the deployment resources was updated to `apps/v1` in tune with the api's deprecated, resulting in compatibility breakage.
+
+This major version signifies this change.
+
+### To 1.0.0
+
+Backwards compatibility is not guaranteed unless you modify the labels used on the chart's deployments.
+Use the workaround below to upgrade from versions previous to 1.0.0. The following example assumes that the release name is jenkins:
+
+```console
+kubectl patch deployment jenkins --type=json -p='[{"op": "remove", "path": "/spec/selector/matchLabels/chart"}]'
 ```
 
-This issue has been reported on [azureDisk with ext4][K8S_VOLUME_TIMEOUT] and
-on [Alibaba cloud][K8S_VOLUME_TIMEOUT_ALIBABA].
+## License
 
-[K8S_VOLUME_TIMEOUT]: https://github.com/kubernetes/kubernetes/issues/67014
-[K8S_VOLUME_TIMEOUT_ALIBABA]: https://github.com/kubernetes/kubernetes/issues/67014#issuecomment-698770511
+Copyright &copy; 2025 Broadcom. The term "Broadcom" refers to Broadcom Inc. and/or its subsidiaries.
 
-#### Storage Class
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
 
-It is possible to define which storage class to use, by setting `persistence.storageClass` to `[customStorageClass]`.
-If set to a dash (`-`), dynamic provisioning is disabled.
-If the storage class is set to null or left undefined (`""`), the default provisioner is used (gp2 on AWS, standard on GKE, AWS & OpenStack).
+<http://www.apache.org/licenses/LICENSE-2.0>
 
-### Additional Secrets
-
-Additional secrets and Additional Existing Secrets,
-can be mounted into the Jenkins controller through the chart or created using `controller.additionalSecrets` or `controller.additionalExistingSecrets`.  
-A common use case might be identity provider credentials if using an external LDAP or OIDC-based identity provider.
-The secret may then be referenced in JCasC configuration (see [JCasC configuration](#configuration-as-code)).
-
-`values.yaml` controller section, referencing mounted secrets:
-```yaml
-controller:
-  # the 'name' and 'keyName' are concatenated with a '-' in between, so for example:
-  # an existing secret "secret-credentials" and a key inside it named "github-password" should be used in Jcasc as ${secret-credentials-github-password}
-  # 'name' and 'keyName' must be lowercase RFC 1123 label must consist of lower case alphanumeric characters or '-',
-  # and must start and end with an alphanumeric character (e.g. 'my-name', or '123-abc')
-  # existingSecret existing secret "secret-credentials" and a key inside it named "github-username" should be used in Jcasc as ${github-username}
-  # When using existingSecret no need to specify the keyName under additionalExistingSecrets.
-  existingSecret: secret-credentials
-  
-  additionalExistingSecrets:
-    - name: secret-credentials
-      keyName: github-username
-    - name: secret-credentials
-      keyName: github-password
-    - name: secret-credentials
-      keyName: token
-  
-  additionalSecrets:
-    - name: client_id
-      value: abc123
-    - name: client_secret
-      value: xyz999
-  JCasC:
-    securityRealm: |
-      oic:
-        clientId: ${client_id}
-        clientSecret: ${client_secret}
-        ...
-    configScripts:
-      jenkins-casc-configs: |
-        credentials:
-          system:
-            domainCredentials:
-            - credentials:
-              - string:
-                  description: "github access token"
-                  id: "github_app_token"
-                  scope: GLOBAL
-                  secret: ${secret-credentials-token}
-              - usernamePassword:
-                  description: "github access username password"
-                  id: "github_username_pass"
-                  password: ${secret-credentials-github-password}
-                  scope: GLOBAL
-                  username: ${secret-credentials-github-username}
-```
-
-For more information, see [JCasC documentation](https://github.com/jenkinsci/configuration-as-code-plugin/blob/master/docs/features/secrets.adoc#kubernetes-secrets).
-
-### Secret Claims from HashiCorp Vault
-
-It's possible for this chart to generate `SecretClaim` resources in order to automatically create and maintain Kubernetes `Secrets` from HashiCorp [Vault](https://www.vaultproject.io/) via [`kube-vault-controller`](https://github.com/roboll/kube-vault-controller)
-
-These `Secrets` can then be referenced in the same manner as Additional Secrets above.
-
-This can be achieved by defining required Secret Claims within `controller.secretClaims`, as follows:
-```yaml
-controller:
-  secretClaims:
-    - name: jenkins-secret
-      path: secret/path
-    - name: jenkins-short-ttl
-      path: secret/short-ttl-path
-      renew: 60
-```
-
-### RBAC
-
-RBAC is enabled by default. If you want to disable it you will need to set `rbac.create` to `false`.
-
-### Adding Custom Pod Templates
-
-It is possible to add custom pod templates for the default configured kubernetes cloud.
-Add a key under `agent.podTemplates` for each pod template. Each key (prior to `|` character) is just a label, and can be any value.
-Keys are only used to give the pod template a meaningful name. The only restriction is they may only contain RFC 1123 \ DNS label characters: lowercase letters, numbers, and hyphens. Each pod template can contain multiple containers.
-There's no need to add the _jnlp_ container since the kubernetes plugin will automatically inject it into the pod.
-For this pod templates configuration to be loaded the following values must be set:
-
-```yaml
-controller.JCasC.defaultConfig: true
-```
-
-The example below creates a python pod template in the kubernetes cloud:
-
-```yaml
-agent:
-  podTemplates:
-    python: |
-      - name: python
-        label: jenkins-python
-        serviceAccount: jenkins
-        containers:
-          - name: python
-            image: python:3
-            command: "/bin/sh -c"
-            args: "cat"
-            ttyEnabled: true
-            privileged: true
-            resourceRequestCpu: "400m"
-            resourceRequestMemory: "512Mi"
-            resourceLimitCpu: "1"
-            resourceLimitMemory: "1024Mi"
-```
-
-Best reference is `https://<jenkins_url>/configuration-as-code/reference#Cloud-kubernetes`.
-
-### Adding Pod Templates Using additionalAgents
-
-`additionalAgents` may be used to configure additional kubernetes pod templates.
-Each additional agent corresponds to `agent` in terms of the configurable values and inherits all values from `agent` so you only need to specify values which differ.
-For example:
-
-```yaml
-agent:
-  podName: default
-  customJenkinsLabels: default
-  # set resources for additional agents to inherit
-  resources:
-    limits:
-      cpu: "1"
-      memory: "2048Mi"
-
-additionalAgents:
-  maven:
-    podName: maven
-    customJenkinsLabels: maven
-    # An example of overriding the jnlp container
-    # sideContainerName: jnlp
-    image: jenkins/jnlp-agent-maven
-    tag: latest
-  python:
-    podName: python
-    customJenkinsLabels: python
-    sideContainerName: python
-    image: python
-    tag: "3"
-    command: "/bin/sh -c"
-    args: "cat"
-    TTYEnabled: true
-```
-
-### Ingress Configuration
-
-This chart provides ingress resources configurable via the `controller.ingress` block.
-
-The simplest configuration looks like the following:
-
-```yaml
-controller:
-   ingress:
-       enabled: true
-       paths: []
-       apiVersion: "extensions/v1beta1"
-       hostName: jenkins.example.com
-```
-
-This snippet configures an ingress rule for exposing jenkins at `jenkins.example.com`
-
-You can define labels and annotations via `controller.ingress.labels` and `controller.ingress.annotations` respectively.
-Additionally, you can configure the ingress tls via `controller.ingress.tls`.
-By default, this ingress rule exposes all paths.
-If needed this can be overwritten by specifying the wanted paths in `controller.ingress.paths`
-
-If you want to configure a secondary ingress e.g. you don't want the jenkins instance exposed but still want to receive webhooks you can configure `controller.secondaryingress`.
-The secondaryingress doesn't expose anything by default and has to be configured via `controller.secondaryingress.paths`:
-
-```yaml
-controller:
-   ingress:
-       enabled: true
-       apiVersion: "extensions/v1beta1"
-       hostName: "jenkins.internal.example.com"
-       annotations:
-           kubernetes.io/ingress.class: "internal"
-   secondaryingress:
-       enabled: true
-       apiVersion: "extensions/v1beta1"
-       hostName: "jenkins-scm.example.com"
-       annotations:
-           kubernetes.io/ingress.class: "public"
-       paths:
-        - /github-webhook
-```
-
-## Prometheus Metrics
-
-If you want to expose Prometheus metrics you need to install the [Jenkins Prometheus Metrics Plugin](https://github.com/jenkinsci/prometheus-plugin).
-It will expose an endpoint (default `/prometheus`) with metrics where a Prometheus Server can scrape.
-
-If you have implemented [Prometheus Operator](https://github.com/prometheus-operator/prometheus-operator), you can set `controller.prometheus.enabled` to `true` to configure a `ServiceMonitor` and `PrometheusRule`.
-If you want to further adjust alerting rules you can do so by configuring `controller.prometheus.alertingrules`
-
-If you have implemented Prometheus without using the operator, you can leave `controller.prometheus.enabled` set to `false`.
-
-### Running Behind a Forward Proxy
-
-The controller pod uses an Init Container to install plugins etc. If you are behind a corporate proxy it may be useful to set `controller.initContainerEnv` to add environment variables such as `http_proxy`, so that these can be downloaded.
-
-Additionally, you may want to add env vars for the init container, the Jenkins container, and the JVM (`controller.javaOpts`):
-
-```yaml
-controller:
-  initContainerEnv:
-    - name: http_proxy
-      value: "http://192.168.64.1:3128"
-    - name: https_proxy
-      value: "http://192.168.64.1:3128"
-    - name: no_proxy
-      value: ""
-    - name: JAVA_OPTS
-      value: "-Dhttps.proxyHost=proxy_host_name_without_protocol -Dhttps.proxyPort=3128"
-  containerEnv:
-    - name: http_proxy
-      value: "http://192.168.64.1:3128"
-    - name: https_proxy
-      value: "http://192.168.64.1:3128"
-  javaOpts: >-
-    -Dhttp.proxyHost=192.168.64.1
-    -Dhttp.proxyPort=3128
-    -Dhttps.proxyHost=192.168.64.1
-    -Dhttps.proxyPort=3128
-```
-
-### HTTPS Keystore Configuration
-
-[This configuration](https://wiki.jenkins.io/pages/viewpage.action?pageId=135468777) enables jenkins to use keystore in order to serve HTTPS.
-Here is the [value file section](https://wiki.jenkins.io/pages/viewpage.action?pageId=135468777#RunningJenkinswithnativeSSL/HTTPS-ConfigureJenkinstouseHTTPSandtheJKSkeystore) related to keystore configuration.
-Keystore itself should be placed in front of `jenkinsKeyStoreBase64Encoded` key and in base64 encoded format. To achieve that after having `keystore.jks` file simply do this: `cat keystore.jks | base64` and paste the output in front of `jenkinsKeyStoreBase64Encoded`.
-After enabling `httpsKeyStore.enable` make sure that `httpPort` and `targetPort` are not the same, as `targetPort` will serve HTTPS.
-Do not set `controller.httpsKeyStore.httpPort` to `-1` because it will cause readiness and liveliness prob to fail.
-If you already have a kubernetes secret that has keystore and its password you can specify its' name in front of `jenkinsHttpsJksSecretName`, You need to remember that your secret should have proper data key names `jenkins-jks-file` (or override the key name using `jenkinsHttpsJksSecretKey`)
-and `https-jks-password` (or override the key name using `jenkinsHttpsJksPasswordSecretKey`; additionally you can make it get the password from a different secret using `jenkinsHttpsJksPasswordSecretName`). Example:
-
-```yaml
-controller:
-   httpsKeyStore:
-       enable: true
-       jenkinsHttpsJksSecretName: ''
-       httpPort: 8081
-       path: "/var/jenkins_keystore"
-       fileName: "keystore.jks"
-       password: "changeit"
-       jenkinsKeyStoreBase64Encoded: ''
-```
-### AWS Security Group Policies
-
-To create SecurityGroupPolicies set `awsSecurityGroupPolicies.enabled` to true and add your policies. Each policy requires a `name`, array of `securityGroupIds` and a `podSelector`. Example:
-
-```yaml
-awsSecurityGroupPolicies:
-  enabled: true
-  policies:
-    - name: "jenkins-controller"
-      securityGroupIds: 
-        - sg-123456789
-      podSelector:
-        matchExpressions:
-          - key: app.kubernetes.io/component
-            operator: In
-            values:
-              - jenkins-controller
-```
-
-### Agent Direct Connection
-
-Set `directConnection` to `true` to allow agents to connect directly to a given TCP port without having to negotiate a HTTP(S) connection. This can allow you to have agent connections without an external HTTP(S) port. Example:
-
-```yaml
-agent:
-  jenkinsTunnel: "jenkinsci-agent:50000"
-  directConnection: true
-```
-
-## Migration Guide
-
-### From stable repository
-
-Upgrade an existing release from `stable/jenkins` to `jenkins/jenkins` seamlessly by ensuring you have the latest [repository info](#get-repository-info) and running the [upgrade commands](#upgrade-chart) specifying the `jenkins/jenkins` chart.
-
-### Major Version Upgrades
-
-Chart release versions follow [SemVer](../../CONTRIBUTING.md#versioning), where a MAJOR version change (example `1.0.0` -> `2.0.0`) indicates an incompatible breaking change needing manual actions.
-
-See [UPGRADING.md](./UPGRADING.md) for a list of breaking changes
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.

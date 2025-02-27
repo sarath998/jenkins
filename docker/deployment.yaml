@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: docker-registry-ui
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: docker-registry-ui
+  template:
+    metadata:
+      labels:
+        app: docker-registry-ui
+    spec:
+      containers:
+      - name: docker-registry-ui
+        image: joxit/docker-registry-ui:2.5.2
+        ports:
+        - containerPort: 80
+        env:
+        - name: DOCKER_REGISTRY_URL
+          value: "http://docker-registry.zenvo.ai"

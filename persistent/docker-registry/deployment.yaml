@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: registry-docker-registry-ui-registry-server
+spec:
+  template:
+    spec:
+      containers:
+        - name: registry-ui
+          image: joxit/docker-registry-ui:latest
+          env:
+            - name: REGISTRY_URL
+              value: "https://registry-ui.zenvo.ai"
+            - name: REGISTRY_TITLE
+              value: "My Docker Registry"
+            - name: SINGLE_REGISTRY
+              value: "true"
+            - name: REGISTRY_HTTP_SECRET
+              value: "0ecbe8518ffb384fcb22b77a90a743401596bf02b36e490bbb85542c9041228a"
+          ports:
+            - containerPort: 80
