@@ -5,13 +5,13 @@ metadata:
   namespace: docker-registry
 spec:
   rules:
-  - host: registry-ui.zenvo.ai
+  - host: docker-registry-ui.zenvo.ai
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: registry-ui-service
+            name: docker-registry-ui-service
             port:
               number: 5000
