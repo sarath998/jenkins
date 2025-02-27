@@ -49,7 +49,7 @@ spec:
         - name: REGISTRY_HTTP_TLS_KEY
           value: "/certs/tls.key"
         - name: VIRTUAL_HOST
-          value: "registry.zenvo.ai"
+          value: "docker-registry.zenvo.ai"
      
       volumes:
       - name: repo-vol
@@ -89,10 +89,10 @@ spec:
   ingressClassName: public
   tls:
   - hosts:
-    - registry.zenvo.ai
+    - docker-registry.zenvo.ai
     secretName: registry-tls
   rules:
-  - host: registry.zenvo.ai
+  - host: docker-registry.zenvo.ai
     http:
       paths:
       - path: /
