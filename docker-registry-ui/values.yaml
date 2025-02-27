@@ -130,11 +130,11 @@ ui:
     # Fully qualified domain name of a network host.
     host: docker-registry-ui.zenvo.ai
     # Path is matched against the path of an incoming request.
-    path: /
+    path: /v2/
     # Determines the interpretation of the Path matching, must be Prefix to serve assets.
     pathType: Prefix
     # The name of an IngressClass cluster resource.
-    ingressClassName: nginx
+    ingressClassName: public
     # TLS configuration
     tls:
       - hosts:
@@ -150,7 +150,7 @@ ui:
 ## Registry Server
 registry:
   # Enable the registry server.
-  enabled: enable
+  enabled: false
   # The name and tag of the docker registry server image
   image: registry:2.8.2
   # Override default image pull secrets
