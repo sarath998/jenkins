@@ -688,12 +688,13 @@ livenessProbe:
 ## @param readinessProbe.successThreshold Success threshold for readinessProbe
 ##
 readinessProbe:
-  enabled: true
-  initialDelaySeconds: 30
+  httpGet:
+    path: /login
+    port: http
+  initialDelaySeconds: 90  # Increase startup delay
+  timeoutSeconds: 10       # Increase request timeout
   periodSeconds: 5
-  timeoutSeconds: 3
-  successThreshold: 1
-  failureThreshold: 3
+  failureThreshold: 6
 ## @param customStartupProbe Custom startupProbe that overrides the default one
 ##
 customStartupProbe: {}
