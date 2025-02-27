@@ -1085,6 +1085,7 @@ volumePermissions:
   securityContext:
     seLinuxOptions: {}
     runAsUser: 0
+    fsGroup: 1000
 ## @section Other Parameters
 ##
 
