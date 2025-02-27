@@ -4,8 +4,9 @@ metadata:
   name: pvc-docker-registry
 spec:
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
+  storageClassName: ""
   resources:
     requests:
-      storage: 20Gi
-  storageClassName: manual
+      storage: 50Gi
+  volumeName: pv-docker-registry
