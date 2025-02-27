@@ -141,10 +141,7 @@ ui:
         -  registry-ui.zenvo.ai
         secretName: registry-tls
     # Annotations to apply to the user interface ingress.
-    annotations: 
-      cert-manager.io/cluster-issuer: "lets-encrypt"
-      nginx.ingress.kubernetes.io/ssl-redirect: "true"
-      nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
+    annotations: {}
     # If you want a custom path, you can try this example:
     # path: /ui(/|$)(.*)
     # annotations:
