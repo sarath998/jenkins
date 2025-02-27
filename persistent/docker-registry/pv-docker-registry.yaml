@@ -4,10 +4,11 @@ metadata:
   name: pv-docker-registry
 spec:
   capacity:
-    storage: 20Gi
+    storage: 50Gi
   accessModes:
-    - ReadWriteOnce
-  persistentVolumeReclaimPolicy: Retain
-  storageClassName: manual
-  hostPath:
-    path: "/mnt/k8s-volume/registry"
+    - ReadWriteMany
+  nfs:
+    server: nfs.coherent.in
+    path: "/mnt/k8s-volume/nfs/k8s/localk8s/docker-registry"
+  mountOptions:
+    - nfsvers=4.2
