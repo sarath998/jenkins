@@ -6,8 +6,9 @@ spec:
   capacity:
     storage: 20Gi
   accessModes:
-    - ReadWriteOnce
+    - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
   storageClassName: jenkins-storage
-  hostPath:
-    path: "/mnt/k8s-volume/jenkins"
+  nfs:
+    path: /mnt/k8s-volume/jenkins
+    server: 192.168.0.104
