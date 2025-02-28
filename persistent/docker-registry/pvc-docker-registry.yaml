@@ -5,8 +5,7 @@ metadata:
 spec:
   accessModes:
     - ReadWriteMany
-  storageClassName: ""
   resources:
     requests:
-      storage: 50Gi
-  volumeName: pv-docker-registry
+      storage: 20Gi
+  storageClassName: docker-storage
