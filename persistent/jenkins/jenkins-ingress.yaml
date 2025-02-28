@@ -21,4 +21,4 @@ spec:
           service:
             name: jenkins
             port:
-              number: 80
+              number: 81
