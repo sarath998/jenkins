@@ -1,9 +1,16 @@
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: jenkins-ingress
-  namespace: jenkins
+  name: jenkins
+  annotations:
+    cert-manager.io/cluster-issuer: "lets-encrypt"
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    nginx.ingress.kubernetes.io/force-ssl-redirect: "true"
 spec:
+  tls:
+  - hosts:
+    - jenkins.zenvo.ai
+    secretName: jenkins-tls
   rules:
   - host: jenkins.zenvo.ai
     http:
@@ -14,4 +21,4 @@ spec:
           service:
             name: jenkins
             port:
-              number: 8080
+              number: 80
