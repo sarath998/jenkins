@@ -8,3 +8,5 @@ http:
   addr: :5000
   headers:
     X-Content-Type-Options: [nosniff]
+# this is new registry-config.yaml not working
+# run command - kubectl create configmap registry-config --from-file=config.yml -n docker-registry
